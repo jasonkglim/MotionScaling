@@ -4,7 +4,7 @@ import time
 import math
 import random
 import csv
-# hello
+
 class InstrumentTracker:
     def __init__(self, root):
         self.root = root
