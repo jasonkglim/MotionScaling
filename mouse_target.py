@@ -38,7 +38,7 @@ class InstrumentTracker:
         self.target_distances = [None] * 4  # Distances from instrument to targets
         self.target_shapes = []  # Store target shapes
         self.current_target = 0  # Track the current target
-        self.mouse_positions = deque()
+        self.mouse_data = deque()
         
         self.movement_data = []
         self.game_running = False
@@ -62,29 +62,29 @@ class InstrumentTracker:
         self.game_params = [(x, y) for x in latencies for y in scales]
         # self.game_params = [(0, 1.0), (1.0, 1.0), (1.0, 0.2), (0, 0.2)]
 
-        # Read data from the CSV file
-        csv_filename = "game_data.csv"  # Replace with the actual CSV file name
-        data_to_remove = []
+        # # Read data from the CSV file
+        # csv_filename = "game_data.csv"  # Replace with the actual CSV file name
+        # data_to_remove = []
 
-        with open(csv_filename, 'r') as csv_file:
-            csv_reader = csv.reader(csv_file)
-            for row in csv_reader:
-                if len(row) >= 2:  # Ensure each row has at least 2 entries
-                    x_value = float(row[0])
-                    y_value = float(row[1])
-                    data_to_remove.append((x_value, y_value))
+        # with open(csv_filename, 'r') as csv_file:
+        #     csv_reader = csv.reader(csv_file)
+        #     for row in csv_reader:
+        #         if len(row) >= 2:  # Ensure each row has at least 2 entries
+        #             x_value = float(row[0])
+        #             y_value = float(row[1])
+        #             data_to_remove.append((x_value, y_value))
 
-                    # Remove the extracted combinations from the list of tuples
-                    for item in data_to_remove:
-                        if item in self.game_params:
-                            self.game_params.remove(item)
+        #             # Remove the extracted combinations from the list of tuples
+        #             for item in data_to_remove:
+        #                 if item in self.game_params:
+        #                     self.game_params.remove(item)
 
         # Randomize the order of the tuples
         random.shuffle(self.game_params)
         
 
         self.total_trials = len(self.game_params)
-        print(self.total_trials)
+        # print(self.total_trials)
     
     def start_game(self):
         self.clear_game_data()  # Clear previous game data
@@ -180,43 +180,27 @@ class InstrumentTracker:
             else:
                 self.clear_warning_message()
 
-            # # Add mouse position to the queue
-            # self.mouse_positions.append((mouse_x, mouse_y))
-            
-            # # Limit the queue size based on desired latency (e.g., 10 positions for 0.1s latency)
-            # max_queue_size = 100  # Adjust as needed
-            # if len(self.mouse_positions) > max_queue_size:
-            #     self.mouse_positions.popleft()  # Remove oldest position
+            # Add mouse position and time stamp to the queue
+            self.mouse_data.append((mouse_x, mouse_y, time.time()))
 
-            # # Update the instrument's position using the oldest position from the queue
-            # if self.mouse_pos:
-            #     mouse_x, mouse_y = self.mouse_positions[0]
-            #     # Calculate instrument movement based on mouse position and scaling
+            # Only update instrument position when latency has been reached 
+            if self.mouse_data[-1][2] - self.mouse_data[0][2] > self.latency:
+                cur_mouse_data = self.mouse_data.popleft()
+                mouse_x = cur_mouse_data[0]
+                mouse_y = cur_mouse_data[1]
                 
-            #     dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
-            #     dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
-            #     # Update instrument position
-            #     self.canvas.move(self.instrument, dx, dy)
-            #     self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
+                # Calculate instrument movement based on mouse position and scaling
+                dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
+                dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
+                # Update instrument position
+                self.canvas.move(self.instrument, dx, dy)
+                self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
             
-            # Check if this is the first time tracking mouse position
-            if self.prev_mouse_x is None or self.prev_mouse_y is None:
-                self.prev_mouse_x = mouse_x
-                self.prev_mouse_y = mouse_y
             
-            time.sleep(self.latency)
-            
-            dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
-            dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
-            
-            self.prev_mouse_x = mouse_x
-            self.prev_mouse_y = mouse_y
-            
-            instrument_coords = self.canvas.coords(self.instrument)
-            instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
-            instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
-            
-            self.canvas.move(self.instrument, dx, dy)
+                instrument_coords = self.canvas.coords(self.instrument)
+                instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+                instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
+                self.canvas.move(self.instrument, dx, dy)
             
             self.movement_data.append((time.time(), instrument_x, instrument_y))
                 
