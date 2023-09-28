@@ -38,21 +38,18 @@ class InstrumentTracker:
         self.target_distances = [None] * 4  # Distances from instrument to targets
         self.target_shapes = []  # Store target shapes
         self.current_target = 0  # Track the current target
-        self.mouse_positions = deque()
+        self.mouse_data = deque()
         
         self.movement_data = []
         self.game_running = False
         self.game_start_time = None  # Timestamp when the game started
         self.game_end_time = None  # Timestamp when the game ended
         
-        self.prev_mouse_x = None  # Store the previous mouse x position
-        self.prev_mouse_y = None  # Store the previous mouse y position
-        
         self.clutch_active = True  # Flag to track clutch state
         self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 16))
         self.clutch_status_label.place(x=10, y=10)
 
-        self.trial_count = 0
+        self.trial_count = 0 # number of games played so far
 
         # generate and shuffle parameter combinations
         latencies = [round(0.1 * i, 1) for i in range(10)]
@@ -62,29 +59,29 @@ class InstrumentTracker:
         self.game_params = [(x, y) for x in latencies for y in scales]
         # self.game_params = [(0, 1.0), (1.0, 1.0), (1.0, 0.2), (0, 0.2)]
 
-        # Read data from the CSV file
-        csv_filename = "game_data.csv"  # Replace with the actual CSV file name
-        data_to_remove = []
+        # # Read data from the CSV file
+        # csv_filename = "game_data.csv"  # Replace with the actual CSV file name
+        # data_to_remove = []
 
-        with open(csv_filename, 'r') as csv_file:
-            csv_reader = csv.reader(csv_file)
-            for row in csv_reader:
-                if len(row) >= 2:  # Ensure each row has at least 2 entries
-                    x_value = float(row[0])
-                    y_value = float(row[1])
-                    data_to_remove.append((x_value, y_value))
+        # with open(csv_filename, 'r') as csv_file:
+        #     csv_reader = csv.reader(csv_file)
+        #     for row in csv_reader:
+        #         if len(row) >= 2:  # Ensure each row has at least 2 entries
+        #             x_value = float(row[0])
+        #             y_value = float(row[1])
+        #             data_to_remove.append((x_value, y_value))
 
-                    # Remove the extracted combinations from the list of tuples
-                    for item in data_to_remove:
-                        if item in self.game_params:
-                            self.game_params.remove(item)
+        #             # Remove the extracted combinations from the list of tuples
+        #             for item in data_to_remove:
+        #                 if item in self.game_params:
+        #                     self.game_params.remove(item)
 
         # Randomize the order of the tuples
         random.shuffle(self.game_params)
         
 
         self.total_trials = len(self.game_params)
-        print(self.total_trials)
+        # print(self.total_trials)
     
     def start_game(self):
         self.clear_game_data()  # Clear previous game data
@@ -105,7 +102,7 @@ class InstrumentTracker:
         )
         
         # Random initialization of game parameters
-        self.latency = 0 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
+        self.latency = 0.5 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
         self.motion_scale = 1.0 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
         self.generate_targets()
         
@@ -124,19 +121,23 @@ class InstrumentTracker:
         self.start_button.destroy()  # Remove the start button
 
         
-        # Bind mouse tracking and click events only when the game starts
-        self.canvas.bind("<Motion>", self.track_mouse)
-        self.canvas.bind("<Button-1>", self.click_mouse)
+        # Start mouse tracking and click events only when the game starts
+        self.canvas.bind("<Button-1>", self.send_click_mouse)
+        self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
+        self.root.after(1, self.track_mouse)        
+
         
         # Bind spacebar to toggle clutch
-        self.root.bind("<space>", self.toggle_clutch)
+        self.root.bind("<space>", self.send_toggle_clutch)
 
         # Turn clutch on
         self.clutch_active = True
         self.clutch_status_label.config(text="Clutch: On", fg="green")
         
-    
-    def toggle_clutch(self, event):
+    def send_toggle_clutch(self, event):
+        self.root.after(int(self.latency*1000), self.toggle_clutch)
+        
+    def toggle_clutch(self):
         self.clutch_active = not self.clutch_active
         if self.clutch_active:
             self.clutch_status_label.config(text="Clutch: On", fg="green")
@@ -144,8 +145,7 @@ class InstrumentTracker:
         else:
             self.clutch_status_label.config(text="Clutch: Off", fg="red")
             self.root.config(cursor="")
-            self.prev_mouse_x = None
-            self.prev_mouse_y = None
+
     
     def generate_targets(self):
         target_positions = random.sample(range(1, 17), 4)
@@ -161,70 +161,67 @@ class InstrumentTracker:
 
 
     
-    def track_mouse(self, event):
-        if self.game_running and self.clutch_active:
-            mouse_x, mouse_y = event.x, event.y
+    def track_mouse(self):
+        if self.game_running:# and self.clutch_active:
+            mouse_x, mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
 
             # Check if the mouse is near the window borders
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
             border_margin = 20  # Margin in pixels to trigger the warning
         
-            near_left_border = mouse_x < border_margin
-            near_right_border = mouse_x > (screen_width - 5*border_margin)
-            near_top_border = mouse_y < border_margin
-            near_bottom_border = mouse_y > (screen_height - 5*border_margin)
+            near_left_border = mouse_x < 5*border_margin
+            near_right_border = mouse_x > (screen_width - border_margin)
+            near_top_border = mouse_y < 5*border_margin
+            near_bottom_border = mouse_y > (screen_height - border_margin)
         
             if near_left_border or near_right_border or near_top_border or near_bottom_border:
                 self.display_warning_message()
             else:
                 self.clear_warning_message()
 
-            # # Add mouse position to the queue
-            # self.mouse_positions.append((mouse_x, mouse_y))
-            
-            # # Limit the queue size based on desired latency (e.g., 10 positions for 0.1s latency)
-            # max_queue_size = 100  # Adjust as needed
-            # if len(self.mouse_positions) > max_queue_size:
-            #     self.mouse_positions.popleft()  # Remove oldest position
+            # Add mouse position and time stamp to the queue
+            self.mouse_data.append((mouse_x, mouse_y, time.time()))
 
-            # # Update the instrument's position using the oldest position from the queue
-            # if self.mouse_pos:
-            #     mouse_x, mouse_y = self.mouse_positions[0]
-            #     # Calculate instrument movement based on mouse position and scaling
+            # Only update instrument position when latency has been reached 
+            if self.mouse_data[-1][2] - self.mouse_data[0][2] >= self.latency:
+                cur_mouse_data = self.mouse_data.popleft()
+                mouse_x = cur_mouse_data[0]
+                mouse_y = cur_mouse_data[1]
+
+                # if self.mouse_data:
+                #     self.prev_mouse_x = self.mouse_data[0][0]
+                #     self.prev_mouse_y = self.mouse_data[0][1]
                 
-            #     dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
-            #     dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
-            #     # Update instrument position
-            #     self.canvas.move(self.instrument, dx, dy)
-            #     self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
-            
-            # Check if this is the first time tracking mouse position
-            if self.prev_mouse_x is None or self.prev_mouse_y is None:
-                self.prev_mouse_x = mouse_x
-                self.prev_mouse_y = mouse_y
-            
-            time.sleep(self.latency)
-            
-            dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
-            dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
-            
-            self.prev_mouse_x = mouse_x
-            self.prev_mouse_y = mouse_y
-            
-            instrument_coords = self.canvas.coords(self.instrument)
-            instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
-            instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
-            
-            self.canvas.move(self.instrument, dx, dy)
-            
-            self.movement_data.append((time.time(), instrument_x, instrument_y))
+                # Calculate instrument movement based on mouse position and scaling
+                dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
+                dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
+                # Update instrument position
+                if self.clutch_active:
+                    self.canvas.move(self.instrument, dx, dy)
+                self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
                 
-    def click_mouse(self, event):
+            
+            # instrument_coords = self.canvas.coords(self.instrument)
+            # instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+            # instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
+            # self.canvas.move(self.instrument, dx, dy)
+            
+            # self.movement_data.append((time.time(), instrument_x, instrument_y))
+        self.root.after(1, self.track_mouse)
+
+    # mouse click binds to send_click_mouse, which calls click_mouse after latency
+    def send_click_mouse(self, event):
+        self.root.after(int(self.latency*1000), self.click_mouse)
+        
+    def click_mouse(self):
         if self.game_running:
             if self.current_target < 4:
+                instrument_coords = self.canvas.coords(self.instrument)
+                instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+                instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
                 target_x, target_y = self.targets[self.current_target]
-                distance = math.sqrt((target_x - event.x) ** 2 + (target_y - event.y) ** 2)
+                distance = math.sqrt((target_x - instrument_x) ** 2 + (target_y - instrument_y) ** 2)
                 self.target_hit[self.current_target] = True
                 self.target_distances[self.current_target] = distance
                 self.canvas.itemconfig(self.target_shapes[self.current_target], fill="green")  # Change target color to green
