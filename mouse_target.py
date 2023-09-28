@@ -103,7 +103,7 @@ class InstrumentTracker:
         
         # Random initialization of game parameters
         self.latency = 0 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
-        self.motion_scale = 1.0 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
+        self.motion_scale = 0.5 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
         self.generate_targets()
         
         self.save_data = False
@@ -139,12 +139,11 @@ class InstrumentTracker:
         self.clutch_active = not self.clutch_active
         if self.clutch_active:
             self.clutch_status_label.config(text="Clutch: On", fg="green")
-            self.root.config(cursor="none")
+            # self.root.config(cursor="none")
         else:
             self.clutch_status_label.config(text="Clutch: Off", fg="red")
             self.root.config(cursor="")
-            self.prev_mouse_x = None
-            self.prev_mouse_y = None
+
     
     def generate_targets(self):
         target_positions = random.sample(range(1, 17), 4)
@@ -161,7 +160,7 @@ class InstrumentTracker:
 
     
     def track_mouse(self):
-        if self.game_running and self.clutch_active:
+        if self.game_running:# and self.clutch_active:
             mouse_x, mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
 
             # Check if the mouse is near the window borders
@@ -196,7 +195,8 @@ class InstrumentTracker:
                 dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
                 dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
                 # Update instrument position
-                self.canvas.move(self.instrument, dx, dy)
+                if self.clutch_active:
+                    self.canvas.move(self.instrument, dx, dy)
                 self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
                 
             
