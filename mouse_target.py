@@ -105,8 +105,8 @@ class InstrumentTracker:
         )
         
         # Random initialization of game parameters
-        self.latency = self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
-        self.motion_scale = self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
+        self.latency = 0 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
+        self.motion_scale = 1.0 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
         self.generate_targets()
         
         self.save_data = False
@@ -114,7 +114,7 @@ class InstrumentTracker:
         self.game_start_time = time.time()
 
         # Hide mouse cursor
-        self.root.config(cursor="none")
+        # self.root.config(cursor="none")
         
         # Create the instrument at the same position as the start button
         start_button_x, start_button_y = self.start_button.winfo_x(), self.start_button.winfo_y()
