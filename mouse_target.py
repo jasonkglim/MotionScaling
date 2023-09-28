@@ -102,8 +102,8 @@ class InstrumentTracker:
         )
         
         # Random initialization of game parameters
-        self.latency = 0 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
-        self.motion_scale = 0.5 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
+        self.latency = 0.5 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
+        self.motion_scale = 1.0 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
         self.generate_targets()
         
         self.save_data = False
@@ -111,7 +111,7 @@ class InstrumentTracker:
         self.game_start_time = time.time()
 
         # Hide mouse cursor
-        #self.root.config(cursor="none")
+        self.root.config(cursor="none")
         
         # Create the instrument at the same position as the start button
         start_button_x, start_button_y = self.start_button.winfo_x(), self.start_button.winfo_y()
@@ -122,24 +122,26 @@ class InstrumentTracker:
 
         
         # Start mouse tracking and click events only when the game starts
-        self.canvas.bind("<Button-1>", self.click_mouse)
+        self.canvas.bind("<Button-1>", self.send_click_mouse)
         self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
         self.root.after(1, self.track_mouse)        
 
         
         # Bind spacebar to toggle clutch
-        self.root.bind("<space>", self.toggle_clutch)
+        self.root.bind("<space>", self.send_toggle_clutch)
 
         # Turn clutch on
         self.clutch_active = True
         self.clutch_status_label.config(text="Clutch: On", fg="green")
         
-    
-    def toggle_clutch(self, event):
+    def send_toggle_clutch(self, event):
+        self.root.after(int(self.latency*1000), self.toggle_clutch)
+        
+    def toggle_clutch(self):
         self.clutch_active = not self.clutch_active
         if self.clutch_active:
             self.clutch_status_label.config(text="Clutch: On", fg="green")
-            # self.root.config(cursor="none")
+            self.root.config(cursor="none")
         else:
             self.clutch_status_label.config(text="Clutch: Off", fg="red")
             self.root.config(cursor="")
@@ -168,10 +170,10 @@ class InstrumentTracker:
             screen_height = self.root.winfo_screenheight()
             border_margin = 20  # Margin in pixels to trigger the warning
         
-            near_left_border = mouse_x < border_margin
-            near_right_border = mouse_x > (screen_width - 5*border_margin)
-            near_top_border = mouse_y < border_margin
-            near_bottom_border = mouse_y > (screen_height - 5*border_margin)
+            near_left_border = mouse_x < 5*border_margin
+            near_right_border = mouse_x > (screen_width - border_margin)
+            near_top_border = mouse_y < 5*border_margin
+            near_bottom_border = mouse_y > (screen_height - border_margin)
         
             if near_left_border or near_right_border or near_top_border or near_bottom_border:
                 self.display_warning_message()
@@ -207,8 +209,12 @@ class InstrumentTracker:
             
             # self.movement_data.append((time.time(), instrument_x, instrument_y))
         self.root.after(1, self.track_mouse)
-                
-    def click_mouse(self, event):
+
+    # mouse click binds to send_click_mouse, which calls click_mouse after latency
+    def send_click_mouse(self, event):
+        self.root.after(int(self.latency*1000), self.click_mouse)
+        
+    def click_mouse(self):
         if self.game_running:
             if self.current_target < 4:
                 instrument_coords = self.canvas.coords(self.instrument)
