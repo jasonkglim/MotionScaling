@@ -45,14 +45,11 @@ class InstrumentTracker:
         self.game_start_time = None  # Timestamp when the game started
         self.game_end_time = None  # Timestamp when the game ended
         
-        self.prev_mouse_x = None  # Store the previous mouse x position
-        self.prev_mouse_y = None  # Store the previous mouse y position
-        
         self.clutch_active = True  # Flag to track clutch state
         self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 16))
         self.clutch_status_label.place(x=10, y=10)
 
-        self.trial_count = 0
+        self.trial_count = 0 # number of games played so far
 
         # generate and shuffle parameter combinations
         latencies = [round(0.1 * i, 1) for i in range(10)]
@@ -105,8 +102,8 @@ class InstrumentTracker:
         )
         
         # Random initialization of game parameters
-        self.latency = self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
-        self.motion_scale = self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
+        self.latency = 0 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
+        self.motion_scale = 1.0 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
         self.generate_targets()
         
         self.save_data = False
@@ -114,7 +111,7 @@ class InstrumentTracker:
         self.game_start_time = time.time()
 
         # Hide mouse cursor
-        self.root.config(cursor="none")
+        #self.root.config(cursor="none")
         
         # Create the instrument at the same position as the start button
         start_button_x, start_button_y = self.start_button.winfo_x(), self.start_button.winfo_y()
@@ -124,9 +121,11 @@ class InstrumentTracker:
         self.start_button.destroy()  # Remove the start button
 
         
-        # Bind mouse tracking and click events only when the game starts
-        self.canvas.bind("<Motion>", self.track_mouse)
+        # Start mouse tracking and click events only when the game starts
         self.canvas.bind("<Button-1>", self.click_mouse)
+        self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
+        self.root.after(1, self.track_mouse)        
+
         
         # Bind spacebar to toggle clutch
         self.root.bind("<space>", self.toggle_clutch)
@@ -161,9 +160,9 @@ class InstrumentTracker:
 
 
     
-    def track_mouse(self, event):
+    def track_mouse(self):
         if self.game_running and self.clutch_active:
-            mouse_x, mouse_y = event.x, event.y
+            mouse_x, mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
 
             # Check if the mouse is near the window borders
             screen_width = self.root.winfo_screenwidth()
@@ -184,10 +183,14 @@ class InstrumentTracker:
             self.mouse_data.append((mouse_x, mouse_y, time.time()))
 
             # Only update instrument position when latency has been reached 
-            if self.mouse_data[-1][2] - self.mouse_data[0][2] > self.latency:
+            if self.mouse_data[-1][2] - self.mouse_data[0][2] >= self.latency:
                 cur_mouse_data = self.mouse_data.popleft()
                 mouse_x = cur_mouse_data[0]
                 mouse_y = cur_mouse_data[1]
+
+                # if self.mouse_data:
+                #     self.prev_mouse_x = self.mouse_data[0][0]
+                #     self.prev_mouse_y = self.mouse_data[0][1]
                 
                 # Calculate instrument movement based on mouse position and scaling
                 dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
@@ -195,20 +198,24 @@ class InstrumentTracker:
                 # Update instrument position
                 self.canvas.move(self.instrument, dx, dy)
                 self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
+                
             
+            # instrument_coords = self.canvas.coords(self.instrument)
+            # instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+            # instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
+            # self.canvas.move(self.instrument, dx, dy)
             
-                instrument_coords = self.canvas.coords(self.instrument)
-                instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
-                instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
-                self.canvas.move(self.instrument, dx, dy)
-            
-            self.movement_data.append((time.time(), instrument_x, instrument_y))
+            # self.movement_data.append((time.time(), instrument_x, instrument_y))
+        self.root.after(1, self.track_mouse)
                 
     def click_mouse(self, event):
         if self.game_running:
             if self.current_target < 4:
+                instrument_coords = self.canvas.coords(self.instrument)
+                instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+                instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
                 target_x, target_y = self.targets[self.current_target]
-                distance = math.sqrt((target_x - event.x) ** 2 + (target_y - event.y) ** 2)
+                distance = math.sqrt((target_x - instrument_x) ** 2 + (target_y - instrument_y) ** 2)
                 self.target_hit[self.current_target] = True
                 self.target_distances[self.current_target] = distance
                 self.canvas.itemconfig(self.target_shapes[self.current_target], fill="green")  # Change target color to green
