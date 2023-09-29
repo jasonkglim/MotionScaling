@@ -4,6 +4,7 @@ import time
 import math
 import random
 import csv
+import pandas as pd
 
 class InstrumentTracker:
     def __init__(self, root):
@@ -44,6 +45,8 @@ class InstrumentTracker:
         self.game_running = False
         self.game_start_time = None  # Timestamp when the game started
         self.game_end_time = None  # Timestamp when the game ended
+
+        self.data_header = ["time", "ins_x", "ins_y", "d1", "d2", "d3", "d4", "click"]
         
         self.clutch_active = True  # Flag to track clutch state
         self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 16))
@@ -57,7 +60,7 @@ class InstrumentTracker:
 
         # Create a list of all possible combinations of (x, y)
         self.game_params = [(x, y) for x in latencies for y in scales]
-        # self.game_params = [(0, 1.0), (1.0, 1.0), (1.0, 0.2), (0, 0.2)]
+        self.game_params = [(0, 1.0), (1.0, 1.0), (1.0, 0.2), (0, 0.2)]
 
         # # Read data from the CSV file
         # csv_filename = "game_data.csv"  # Replace with the actual CSV file name
@@ -77,8 +80,7 @@ class InstrumentTracker:
         #                     self.game_params.remove(item)
 
         # Randomize the order of the tuples
-        random.shuffle(self.game_params)
-        
+        # random.shuffle(self.game_params)        
 
         self.total_trials = len(self.game_params)
         # print(self.total_trials)
@@ -102,8 +104,8 @@ class InstrumentTracker:
         )
         
         # Random initialization of game parameters
-        self.latency = 0.5 #self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
-        self.motion_scale = 1.0 #self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
+        self.latency = self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
+        self.motion_scale = self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
         self.generate_targets()
         
         self.save_data = False
@@ -121,19 +123,22 @@ class InstrumentTracker:
         self.start_button.destroy()  # Remove the start button
 
         
-        # Start mouse tracking and click events only when the game starts
+        # Start mouse tracking, bind click and clutch events
         self.canvas.bind("<Button-1>", self.send_click_mouse)
+        self.root.bind("<space>", self.send_toggle_clutch)
         self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
         self.root.after(1, self.track_mouse)        
-
-        
-        # Bind spacebar to toggle clutch
-        self.root.bind("<space>", self.send_toggle_clutch)
 
         # Turn clutch on
         self.clutch_active = True
         self.clutch_status_label.config(text="Clutch: On", fg="green")
-        
+
+        # Initialize data log
+        self.current_log_file = "l{0}s{1}.csv".format(self.latency, self.motion_scale)
+        self.game_data = []
+        self.log_count = 0
+
+    # Two functions for triggering and actually calling clutch toggle to simulate latency properly
     def send_toggle_clutch(self, event):
         self.root.after(int(self.latency*1000), self.toggle_clutch)
         
@@ -165,6 +170,26 @@ class InstrumentTracker:
         if self.game_running:# and self.clutch_active:
             mouse_x, mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
 
+            # Log data every 20th time track_mouse is called
+            if self.log_count == 20:
+
+                # Get instrument pos
+                instrument_coords = self.canvas.coords(self.instrument)
+                instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+                instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
+
+                # Get distances to targets
+                distances = []
+                for target_x, target_y in self.targets:
+                    distances.append( math.sqrt((target_x - instrument_x) ** 2 + (target_y - instrument_y) ** 2) )
+
+                data_point = [time.time() - self.game_start_time] + [instrument_x, instrument_y] + distances + [False]
+                self.game_data.append(data_point)
+                self.log_count = 0
+            else:
+                self.log_count += 1
+
+
             # Check if the mouse is near the window borders
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
@@ -188,10 +213,6 @@ class InstrumentTracker:
                 cur_mouse_data = self.mouse_data.popleft()
                 mouse_x = cur_mouse_data[0]
                 mouse_y = cur_mouse_data[1]
-
-                # if self.mouse_data:
-                #     self.prev_mouse_x = self.mouse_data[0][0]
-                #     self.prev_mouse_y = self.mouse_data[0][1]
                 
                 # Calculate instrument movement based on mouse position and scaling
                 dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
@@ -200,14 +221,8 @@ class InstrumentTracker:
                 if self.clutch_active:
                     self.canvas.move(self.instrument, dx, dy)
                 self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
-                
-            
-            # instrument_coords = self.canvas.coords(self.instrument)
-            # instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
-            # instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
-            # self.canvas.move(self.instrument, dx, dy)
-            
-            # self.movement_data.append((time.time(), instrument_x, instrument_y))
+
+        # Repeat to continuously call function
         self.root.after(1, self.track_mouse)
 
     # mouse click binds to send_click_mouse, which calls click_mouse after latency
@@ -216,6 +231,21 @@ class InstrumentTracker:
         
     def click_mouse(self):
         if self.game_running:
+
+            # Get instrument pos
+            instrument_coords = self.canvas.coords(self.instrument)
+            instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+            instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
+
+            # Get distances to targets
+            distances = []
+            for target_x, target_y in self.targets:
+                distances.append( math.sqrt((target_x - instrument_x) ** 2 + (target_y - instrument_y) ** 2) )
+
+            # save data point with click True
+            data_point = [time.time() - self.game_start_time] + [instrument_x, instrument_y] + distances + [True]
+            self.game_data.append(data_point)
+
             if self.current_target < 4:
                 instrument_coords = self.canvas.coords(self.instrument)
                 instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
@@ -226,6 +256,7 @@ class InstrumentTracker:
                 self.target_distances[self.current_target] = distance
                 self.canvas.itemconfig(self.target_shapes[self.current_target], fill="green")  # Change target color to green
                 self.current_target += 1
+
             
             if self.current_target == 4:
                 self.end_game()
@@ -297,7 +328,8 @@ class InstrumentTracker:
         
         # Clear canvas
         self.canvas.delete("all")
-    
+
+        
     def save_game_data_to_csv(self):
         if self.save_data:
             csv_filename = "game_data.csv"
@@ -309,6 +341,10 @@ class InstrumentTracker:
                 total_time = self.game_end_time - self.game_start_time
                 data_row = [latency, scaling_factor] + target_distances + [total_time]
                 writer.writerow(data_row)
+
+                # Save motion data
+            df = pd.DataFrame(self.game_data)
+            df.to_csv(self.current_log_file, header=self.data_header, index_label="time")
 
     def display_warning_message(self):
         if not hasattr(self, "warning_message"):
