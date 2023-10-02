@@ -59,7 +59,7 @@ class InstrumentTracker:
         scales = [round(0.1 * j + 0.1, 1) for j in range(10)]
 
         # Create a list of all possible combinations of (x, y)
-        self.game_params = [(x, y) for x in latencies for y in scales]
+        # self.game_params = [(x, y) for x in latencies for y in scales]
         self.game_params = [(0, 1.0), (1.0, 1.0), (1.0, 0.2), (0, 0.2)]
 
         # # Read data from the CSV file
@@ -87,7 +87,7 @@ class InstrumentTracker:
     
     def start_game(self):
         self.clear_game_data()  # Clear previous game data
-        print('Game #', self.trial_count)
+
         
         # Destroy the "Save Data" and "Don't Save" buttons if they exist
         if self.save_button:
@@ -106,6 +106,7 @@ class InstrumentTracker:
         # Random initialization of game parameters
         self.latency = self.game_params[self.trial_count][0] #random.uniform(0.1, 0.2)
         self.motion_scale = self.game_params[self.trial_count][1] #random.uniform(0.9, 1.0)
+        print('Game #', self.trial_count, " Params: ", self.latency, self.motion_scale)
         self.generate_targets()
         
         self.save_data = False
@@ -113,7 +114,7 @@ class InstrumentTracker:
         self.game_start_time = time.time()
 
         # Hide mouse cursor
-        # self.root.config(cursor="none")
+        self.root.config(cursor="none")
         
         # Create the instrument at the same position as the start button
         start_button_x, start_button_y = self.start_button.winfo_x(), self.start_button.winfo_y()
@@ -134,7 +135,7 @@ class InstrumentTracker:
         self.clutch_status_label.config(text="Clutch: On", fg="green")
 
         # Initialize data log
-        self.current_log_file = "l{0}s{1}.csv".format(self.latency, self.motion_scale)
+        self.current_log_file = "data_files3/l{0}s{1}.csv".format(self.latency, self.motion_scale)
         self.game_data = []
         self.log_count = 0
 
@@ -171,7 +172,7 @@ class InstrumentTracker:
             mouse_x, mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
 
             # Log data every 20th time track_mouse is called
-            if self.log_count == 20:
+            if self.log_count == 10:
 
                 # Get instrument pos
                 instrument_coords = self.canvas.coords(self.instrument)
@@ -332,7 +333,7 @@ class InstrumentTracker:
         
     def save_game_data_to_csv(self):
         if self.save_data:
-            csv_filename = "game_data.csv"
+            csv_filename = "data_files3/game_data.csv"
             with open(csv_filename, mode="a", newline="") as file:
                 writer = csv.writer(file)
                 latency = self.latency
