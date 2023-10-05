@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import simps
 
 # List of CSV files to process
-csv_files = ["data_files/l0.75s0.8.csv"]
+csv_files = ["data_files/l0.3s0.4.csv"]
 error = []
 # Loop through each CSV file and process the data
 for csv_file in csv_files:

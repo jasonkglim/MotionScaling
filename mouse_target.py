@@ -61,8 +61,8 @@ class InstrumentTracker:
         print(latencies, scales)
 
         # Create a list of all possible combinations of (x, y)
-        self.game_params = [(x, y) for x in latencies for y in scales]
-        # self.game_params = [(1.0, 0.2)]
+        # self.game_params = [(x, y) for x in latencies for y in scales]
+        self.game_params = [(1.0, 0.2)]
 
         # Read already performed params from data file
         self.param_file = "data_files/tested_params.csv"  # Replace with the actual CSV file name
@@ -144,10 +144,10 @@ class InstrumentTracker:
 
     # Two functions for triggering and actually calling clutch toggle to simulate latency properly
     def send_toggle_clutch(self, event):
+        self.clutch_active = not self.clutch_active
         self.root.after(int(self.latency*1000), self.toggle_clutch)
         
     def toggle_clutch(self):
-        self.clutch_active = not self.clutch_active
         if self.clutch_active:
             self.clutch_status_label.config(text="Clutch: On", fg="green")
             self.root.config(cursor="none")
@@ -210,7 +210,7 @@ class InstrumentTracker:
                 self.clear_warning_message()
 
             # Add mouse position and time stamp to the queue
-            self.mouse_data.append((mouse_x, mouse_y, time.time()))
+            self.mouse_data.append((mouse_x, mouse_y, time.time(), self.clutch_active))
 
             # Only update instrument position when latency has been reached 
             if self.mouse_data[-1][2] - self.mouse_data[0][2] >= self.latency:
@@ -222,7 +222,7 @@ class InstrumentTracker:
                 dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
                 dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
                 # Update instrument position
-                if self.clutch_active:
+                if cur_mouse_data[3]:
                     self.canvas.move(self.instrument, dx, dy)
                 self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
 
