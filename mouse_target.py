@@ -61,8 +61,8 @@ class InstrumentTracker:
         print(latencies, scales)
 
         # Create a list of all possible combinations of (x, y)
-        # self.game_params = [(x, y) for x in latencies for y in scales]
-        self.game_params = [(1.0, 0.2)]
+        self.game_params = [(x, y) for x in latencies for y in scales]
+        # self.game_params = [(1.0, 0.2)]
 
         # Read already performed params from data file
         self.param_file = "data_files/tested_params.csv"  # Replace with the actual CSV file name
