@@ -1,3 +1,4 @@
+import os
 from collections import deque
 import tkinter as tk
 import time
@@ -55,35 +56,37 @@ class InstrumentTracker:
         self.trial_count = 0 # number of games played so far
 
         # generate and shuffle parameter combinations
-        latencies = [round(0.1 * i, 1) for i in range(10)]
-        scales = [round(0.1 * j + 0.1, 1) for j in range(10)]
+        latencies = [round(0.15 * i, 2) for i in range(6)]
+        scales = [round(0.2 * j + 0.2, 1) for j in range(5)]
+        print(latencies, scales)
 
         # Create a list of all possible combinations of (x, y)
-        # self.game_params = [(x, y) for x in latencies for y in scales]
-        self.game_params = [(0, 1.0), (1.0, 1.0), (1.0, 0.2), (0, 0.2)]
+        self.game_params = [(x, y) for x in latencies for y in scales]
+        # self.game_params = [(1.0, 0.2)]
 
-        # # Read data from the CSV file
-        # csv_filename = "game_data.csv"  # Replace with the actual CSV file name
-        # data_to_remove = []
+        # Read already performed params from data file
+        self.param_file = "data_files/tested_params.csv"  # Replace with the actual CSV file name
+        data_to_remove = []
 
-        # with open(csv_filename, 'r') as csv_file:
-        #     csv_reader = csv.reader(csv_file)
-        #     for row in csv_reader:
-        #         if len(row) >= 2:  # Ensure each row has at least 2 entries
-        #             x_value = float(row[0])
-        #             y_value = float(row[1])
-        #             data_to_remove.append((x_value, y_value))
+        if os.path.exists(self.param_file):
+            with open(self.param_file, 'r') as csv_file:
+                csv_reader = csv.reader(csv_file)
+                for row in csv_reader:
+                    if len(row) >= 2:  # Ensure each row has at least 2 entries
+                        x_value = float(row[0])
+                        y_value = float(row[1])
+                        data_to_remove.append((x_value, y_value))
 
-        #             # Remove the extracted combinations from the list of tuples
-        #             for item in data_to_remove:
-        #                 if item in self.game_params:
-        #                     self.game_params.remove(item)
+                        # Remove the extracted combinations from the list of tuples
+                        for item in data_to_remove:
+                            if item in self.game_params:
+                                self.game_params.remove(item)
 
         # Randomize the order of the tuples
-        # random.shuffle(self.game_params)        
+        random.shuffle(self.game_params)        
 
         self.total_trials = len(self.game_params)
-        # print(self.total_trials)
+        print(self.total_trials)
     
     def start_game(self):
         self.clear_game_data()  # Clear previous game data
@@ -135,7 +138,7 @@ class InstrumentTracker:
         self.clutch_status_label.config(text="Clutch: On", fg="green")
 
         # Initialize data log
-        self.current_log_file = "data_files3/l{0}s{1}.csv".format(self.latency, self.motion_scale)
+        self.current_log_file = "data_files/l{0}s{1}.csv".format(self.latency, self.motion_scale)
         self.game_data = []
         self.log_count = 0
 
@@ -168,7 +171,7 @@ class InstrumentTracker:
 
     
     def track_mouse(self):
-        if self.game_running:# and self.clutch_active:
+        if self.game_running:
             mouse_x, mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
 
             # Log data every 20th time track_mouse is called
@@ -326,6 +329,7 @@ class InstrumentTracker:
         self.save_data = False
         self.prev_mouse_x = None
         self.prev_mouse_y = None
+        self.mouse_data.clear()
         
         # Clear canvas
         self.canvas.delete("all")
@@ -333,8 +337,7 @@ class InstrumentTracker:
         
     def save_game_data_to_csv(self):
         if self.save_data:
-            csv_filename = "data_files3/game_data.csv"
-            with open(csv_filename, mode="a", newline="") as file:
+            with open(self.param_file, mode="a", newline="") as file:
                 writer = csv.writer(file)
                 latency = self.latency
                 scaling_factor = self.motion_scale
@@ -344,8 +347,9 @@ class InstrumentTracker:
                 writer.writerow(data_row)
 
                 # Save motion data
-            df = pd.DataFrame(self.game_data)
-            df.to_csv(self.current_log_file, header=self.data_header, index_label="time")
+            df = pd.DataFrame(self.game_data, columns=self.data_header)
+            df = df.sort_values(by="time")
+            df.to_csv(self.current_log_file, index=False, mode='w')
 
     def display_warning_message(self):
         if not hasattr(self, "warning_message"):

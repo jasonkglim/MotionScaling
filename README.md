@@ -14,3 +14,5 @@ No longer noticing effect... could be due to inherent system lag with VMware ins
 
 data_files3:
 Definitely noticing effect now for params 0 latency, 0.2 scale. Definitely seems like an issue with inherent lag in the system.
+
+Confirmed that it is general system lag causing issue. Ran program on laptop with 0 latency, 0.2 scale, and everything was fine at first. Then I noticed the issue a little and noticed that the clutch command was lagging, in other words I would press spacebar and there was some delay before seeing the indicator switch, which shouldn't be the case for 0 latency.
