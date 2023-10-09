@@ -8,7 +8,7 @@ import csv
 import pandas as pd
 
 class InstrumentTracker:
-	def __init__(self, root, params):
+	def __init__(self, root, params, data_folder):
 		self.root = root
 		self.root.title("Instrument Tracker")
 		
@@ -54,8 +54,14 @@ class InstrumentTracker:
 		self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 16))
 		self.clutch_status_label.place(x=10, y=10)
 
+                # set params
 		self.latency = params[0]
 		self.motion_scale = params[1]
+
+                # set logging files
+		self.param_file = f"{data_folder}/tested_params.csv"
+		self.current_log_file = f"{data_folder}/l{self.latency}s{self.motion_scale}.csv"
+		self.track_times_file = f"{data_folder}/track_times_l{self.latency}s{self.motion_scale}.csv"
 
 		
 	
@@ -103,12 +109,8 @@ class InstrumentTracker:
 		self.clutch_active = True
 		self.clutch_status_label.config(text="Clutch: On", fg="green")
 
-		# Initialize data log
-		self.param_file = "data_files/set6/tested_params.csv"
-		self.current_log_file = "data_files/set6/l{0}s{1}.csv".format(self.latency, self.motion_scale)
-		self.track_times_file = "data_files/set6/track_times_l{0}s{1}.csv".format(self.latency, self.motion_scale)
+                # Initialize data log
 		self.game_data = []
-		self.log_count = 0
 		
 		# Start tracking
 		self.game_start_time = time.time()
@@ -332,6 +334,12 @@ class InstrumentTracker:
 			delattr(self, "warning_message")
 
 if __name__ == "__main__":
+
+        # Data log folder
+        set_num = 1
+        data_folder = f"data_files/set{set_num}"
+        if not os.path.exists(data_folder):
+                os.mkdir(data_folder)
 	
 	# generate and shuffle parameter combinations
 	latencies = [round(0.15 * i, 2) for i in range(2)]
@@ -342,32 +350,33 @@ if __name__ == "__main__":
 	game_params = [(x, y) for x in latencies for y in scales]
 
 	# Read already performed params from data file
-	param_file = "data_files/set6/tested_params.csv"
+	param_file = f"{data_folder}/tested_params.csv"
 	data_to_remove = []
 
 	if os.path.exists(param_file):
-			with open(param_file, 'r') as csv_file:
-				csv_reader = csv.reader(csv_file)
-				for row in csv_reader:
-					if len(row) >= 2:  # Ensure each row has at least 2 entries
-						x_value = float(row[0])
-						y_value = float(row[1])
-						data_to_remove.append((x_value, y_value))
+                with open(param_file, 'r') as csv_file:
+                        csv_reader = csv.reader(csv_file)
+                        for row in csv_reader:
+                                if len(row) >= 2:  # Ensure each row has at least 2 entries
+                                        x_value = float(row[0])
+                                        y_value = float(row[1])
+                                        data_to_remove.append((x_value, y_value))
 
-						# Remove the extracted combinations from the list of tuples
-						for item in data_to_remove:
-							if item in game_params:
-								game_params.remove(item)
+                                        # Remove the extracted combinations from the list of tuples
+                                        for item in data_to_remove:
+                                                if item in game_params:
+                                                        game_params.remove(item)
 
 	# Randomize the order of the tuples
 	random.shuffle(game_params)
 
 	total_trials = len(game_params)
-	print(total_trials)
+	print("Total trials left: ", total_trials)
 
 	
 	for i, params in enumerate(game_params):
-		print('Game #', i, " Params: ", params[0], params[1])
-		root = tk.Tk()  # Create one instance of Tk
-		app = InstrumentTracker(root, params)
+                print('Game #', i, " Params: ", params[0], params[1])
+		root = tk.Tk()  
+		app = InstrumentTracker(root, params, data_folder)
 		root.mainloop()
+                
