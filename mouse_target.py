@@ -342,18 +342,18 @@ if __name__ == "__main__":
                 os.mkdir(data_folder)
 	
 	# generate and shuffle parameter combinations
-	latencies = [round(0.15 * i, 2) for i in range(2)]
-	scales = [round(0.2 * j + 0.2, 1) for j in range(2)]
-	print(latencies, scales)
+        latencies = [round(0.15 * i, 2) for i in range(6)]
+        scales = [round(0.2 * j + 0.2, 1) for j in range(5)]
+        print(latencies, scales)
 
-	# Create a list of all possible combinations of (x, y)
-	game_params = [(x, y) for x in latencies for y in scales]
+        # Create a list of all possible combinations of (x, y)
+        game_params = [(x, y) for x in latencies for y in scales]
 
-	# Read already performed params from data file
-	param_file = f"{data_folder}/tested_params.csv"
-	data_to_remove = []
+        # Read already performed params from data file
+        param_file = f"{data_folder}/tested_params.csv"
+        data_to_remove = []
 
-	if os.path.exists(param_file):
+        if os.path.exists(param_file):
                 with open(param_file, 'r') as csv_file:
                         csv_reader = csv.reader(csv_file)
                         for row in csv_reader:
@@ -368,15 +368,20 @@ if __name__ == "__main__":
                                                         game_params.remove(item)
 
 	# Randomize the order of the tuples
-	random.shuffle(game_params)
+        random.shuffle(game_params)
 
-	total_trials = len(game_params)
-	print("Total trials left: ", total_trials)
+        total_trials = len(game_params)
+        print("Total trials left: ", total_trials)
 
 	
-	for i, params in enumerate(game_params):
+        for i, params in enumerate(game_params):
                 print('Game #', i, " Params: ", params[0], params[1])
-		root = tk.Tk()  
-		app = InstrumentTracker(root, params, data_folder)
-		root.mainloop()
+                root = tk.Tk()  
+                app = InstrumentTracker(root, params, data_folder)
+                root.mainloop()
+
+                # Check for user input to continue or exit
+                user_input = input("Press Enter to continue to the next game or 'q' + Enter to quit: ")
+                if user_input.lower() == 'q':
+                        break
                 

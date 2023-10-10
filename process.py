@@ -46,7 +46,8 @@ def plot_heatmaps(metric_df):
 if __name__ == "__main__":
 
     # List of CSV files to process
-    data_folder = "data_files/set6"
+    set_num = 1
+    data_folder = f"data_files/set{set_num}"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
 
@@ -71,7 +72,7 @@ if __name__ == "__main__":
                 latency = float(match.group(1))
                 scale = float(match.group(2))            
                 df = pd.read_csv(file_path)
-                tt_df = pd.read_csv(f"data_files/set6/track_times_l{latency}s{scale}.csv")
+                tt_df = pd.read_csv(f"{data_folder}/track_times_l{latency}s{scale}.csv")
 
                 # Total time to complete trial
                 completion_time = df['time'].iloc[-1] - df['time'].iloc[0]
@@ -98,8 +99,8 @@ if __name__ == "__main__":
 
                 # Calculate mean and std of sampling rate of track_times
                 tt_dt = tt_df["time"].diff()
-                plt.plot(tt_dt)
-                plt.show()
+                # plt.plot(tt_dt)
+                # plt.show()
                 tt_fs = 1.0 / tt_dt
                 tt_fs_mean = np.mean(tt_fs)
                 tt_fs_std = np.std(tt_fs)
