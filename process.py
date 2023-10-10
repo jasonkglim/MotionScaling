@@ -6,18 +6,39 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.integrate import simps
 import re
 import os
+from scipy.signal import butter, filtfilt, welch
 
 ### Functions for calculating metrics
 
 # Calculates overshoot distance. takes in dataframe representing segment of trial
-def compute_os_dist(segment):
+def compute_os_dist(distance):
     # Calculate positive area under derivative
-    derivative_d = segment[cur_d].diff() / segment["time"].diff()
+    derivative_d = distance.diff() / segment["time"].diff()
     return simps(np.maximum(derivative_d.fillna(0), 0), segment['time'])
 
 # Calculates energy spectral density of high-passed signal
-def compute_esd(segment):
-    pass
+def compute_esd(signal, fs):
+
+    fc = 1 # cutoff freq
+    order = 4  # Filter order
+    nyquist_frequency = 0.5 * fs
+    
+    # Design the high-pass filter
+    b, a = butter(order, fc / nyquist_frequency, btype='high')
+
+    # Apply the high-pass filter to the signal
+    filtered_signal = filtfilt(b, a, signal)
+
+    # Compute the PSD of the filtered signal
+    frequencies, psd = welch(filtered_signal, fs=fs, nperseg=1024)
+
+    # Compute ESD
+    duration = len(signal) / fs
+    esd = psd * duration
+
+    return frequencies, esd
+
+
 
 ### Plotting functions
 def plot_heatmaps(metric_df):
@@ -58,10 +79,12 @@ if __name__ == "__main__":
     c1 = 1
     c2 = 1
 
+    # cutoff frequency
+
     # Loop through each CSV file in data folder
     for filename in os.listdir(data_folder):
-        # if count == 1:
-        #     break
+        if count == 3:
+            break
         if filename.endswith(".csv"):
             file_path = os.path.join(data_folder, filename)        
             match = re.match(pattern, filename)
@@ -72,7 +95,6 @@ if __name__ == "__main__":
                 latency = float(match.group(1))
                 scale = float(match.group(2))            
                 df = pd.read_csv(file_path)
-                tt_df = pd.read_csv(f"{data_folder}/track_times_l{latency}s{scale}.csv")
 
                 # Total time to complete trial
                 completion_time = df['time'].iloc[-1] - df['time'].iloc[0]
@@ -86,30 +108,18 @@ if __name__ == "__main__":
                 overshoot_distances = []
 
                 # Calculate mean and standard deviation of sampling rate in motion data file
-                motion_dt = df["time"].diff()
-                motion_fs = 1.0 / motion_dt
-                motion_fs_mean = np.mean(motion_fs)
-                motion_fs_std = np.std(motion_fs)
+                dt = df_noclick["time"].diff()
+                fs = 1.0 / dt
+                fs_mean = np.mean(fs)
+                fs_std = np.std(fs)
+                if fs_std > 5:
+                    print("Warning! Sampling Rate std is: ", fs_std, "!")
 
-                # Calculate mean and standard deviation of sampling rate in motion data file
-                noclick_dt = df_noclick["time"].diff()
-                noclick_fs = 1.0 / noclick_dt
-                noclick_fs_mean = np.mean(noclick_fs)
-                noclick_fs_std = np.std(noclick_fs)
-
-                # Calculate mean and std of sampling rate of track_times
-                tt_dt = tt_df["time"].diff()
-                # plt.plot(tt_dt)
-                # plt.show()
-                tt_fs = 1.0 / tt_dt
-                tt_fs_mean = np.mean(tt_fs)
-                tt_fs_std = np.std(tt_fs)
-
-                print("Trial: ", latency, scale)
-                print("Mean and std of motion data sample rate: ", motion_fs_mean, motion_fs_std)
-                print("Mean and std of motion data sample rate no click: ", noclick_fs_mean, noclick_fs_std)
-                print("Mean and std of track_mouse fn call sample rate: ", tt_fs_mean, tt_fs_std)
-                print()
+                # print("Trial: ", latency, scale)
+                # print("Mean and std of motion data sample rate: ", motion_fs_mean, motion_fs_std)
+                # print("Mean and std of motion data sample rate no click: ", noclick_fs_mean, noclick_fs_std)
+                # print("Mean and std of track_mouse fn call sample rate: ", tt_fs_mean, tt_fs_std)
+                # print()
 
 
                 # Split the data into segments using the click indices
@@ -126,10 +136,15 @@ if __name__ == "__main__":
                     data_segments.append(segment)
 
                     # Calculate Overshoot distance
-                    overshoot_distances.append(compute_os_dist(segment))
+                    overshoot_distances.append(compute_os_dist(segment[cur_d]))
 
                     # Calculate ESD
-                    compute_esd(segment)
+                    frequencies, esd = compute_esd(segment[cur_d], fs_mean)
+
+                    plt.semilogy(frequencies, esd)
+                    plt.xlabel('Frequency (Hz)')
+                    plt.ylabel('Energy/Frequency')
+                    plt.show()
 
         
                 # for i in range(4):
