@@ -19,24 +19,26 @@ def compute_os_dist(distance):
 # Calculates energy spectral density of high-passed signal
 def compute_esd(signal, fs):
 
-    fc = 1 # cutoff freq
-    order = 4  # Filter order
-    nyquist_frequency = 0.5 * fs
-    
-    # Design the high-pass filter
-    b, a = butter(order, fc / nyquist_frequency, btype='high')
-
-    # Apply the high-pass filter to the signal
-    filtered_signal = filtfilt(b, a, signal)
-
     # Compute the PSD of the filtered signal
-    frequencies, psd = welch(filtered_signal, fs=fs, nperseg=1024)
+    frequencies, psd = welch(signal, fs=fs)
 
     # Compute ESD
     duration = len(signal) / fs
     esd = psd * duration
 
     return frequencies, esd
+
+# high pass bidirectional filter
+def hfiltfilt(signal, fs, fc, order):
+
+    nyquist_frequency = 0.5 * fs
+    
+    # Design the high-pass filter
+    b, a = butter(order, fc / nyquist_frequency, btype='high')
+
+    # Apply the high-pass filter to the signal
+    return filtfilt(b, a, signal)
+
 
 
 
