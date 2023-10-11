@@ -28,8 +28,10 @@ def compute_esd(signal, fs):
 
     return frequencies, esd
 
+
+### Helper functions
 # high pass bidirectional filter
-def hfiltfilt(signal, fs, fc, order):
+def high_butter(signal, fs, fc, order):
 
     nyquist_frequency = 0.5 * fs
     
