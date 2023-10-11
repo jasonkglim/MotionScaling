@@ -35,12 +35,12 @@ signals = []
 # signals.append( np.cos(2*np.pi* 0.1 * time) )
 # signals.append( np.cos(2*np.pi* 1 * time) )
 signal =  np.cos(2*np.pi* 2 * time)
-padding_duration = 2 # seconds
+padding_duration = 10 # seconds
 num_padding_samples = padding_duration * sampling_frequency # per side
 padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
 
 cutoff_frequency = 0.1
-filt_order = 7
+filt_order = 8
 filtered_signal = process.high_butter(signal, sampling_frequency, cutoff_frequency, order=filt_order)
 filtered_padded_signal = process.high_butter(padded_signal, sampling_frequency, cutoff_frequency, order=filt_order)
 
