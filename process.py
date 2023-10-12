@@ -11,10 +11,10 @@ from scipy.signal import butter, filtfilt, welch
 ### Functions for calculating metrics
 
 # Calculates overshoot distance. takes in dataframe representing segment of trial
-def compute_os_dist(distance):
+def compute_os_dist(distance, time):
     # Calculate positive area under derivative
-    derivative_d = distance.diff() / segment["time"].diff()
-    return simps(np.maximum(derivative_d.fillna(0), 0), segment['time'])
+    derivative_d = distance.diff() / time.diff()
+    return simps(np.maximum(derivative_d.fillna(0), 0), time)
 
 # Calculates energy spectral density of high-passed signal
 def compute_esd(signal, fs):
@@ -24,7 +24,7 @@ def compute_esd(signal, fs):
 
     # Compute ESD
     duration = len(signal) / fs
-    esd = psd * duration
+    esd = psd * duration    
 
     return frequencies, esd
 
@@ -110,6 +110,7 @@ if __name__ == "__main__":
                 data_segments = []
                 target_distances = []
                 overshoot_distances = []
+                esd_metric = []
 
                 # Calculate mean and standard deviation of sampling rate in motion data file
                 dt = df_noclick["time"].diff()
@@ -140,12 +141,17 @@ if __name__ == "__main__":
                     data_segments.append(segment)
 
                     # Calculate Overshoot distance
-                    overshoot_distances.append(compute_os_dist(segment[cur_d]))
+                    overshoot_distances.append(compute_os_dist(segment[cur_d], segment["time"]))
 
                     # Calculate ESD
-                    frequencies, esd = compute_esd(segment[cur_d], fs_mean)
+                    fc = 0.1 # Hz
+                    order = 5
+                    filtered_signal = high_butter(segment[cur_d], fs_mean, fc, order)
+                    freq, esd = compute_esd(segment[cur_d], fs_mean)
+                    # Integrate ESD for total energy
+                    esd_metric.append(simps(esd, freq))
 
-                    plt.semilogy(frequencies, esd)
+                    plt.semilogy(freq, esd)
                     plt.xlabel('Frequency (Hz)')
                     plt.ylabel('Energy/Frequency')
                     plt.show()
@@ -154,7 +160,7 @@ if __name__ == "__main__":
                 # for i in range(4):
                 #     print(f"Target error: {target_distances[i]}, Overshoot error: {overshoot_distances[i]}")
 
-                error_metric = c1 * sum(target_distances) + c2 * sum(overshoot_distances)
+                error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric)
                 metric_data.append([latency, scale, error_metric, completion_time])
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])
