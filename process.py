@@ -65,7 +65,7 @@ def plot_heatmaps(metric_df):
     plt.tight_layout()
     plt.savefig('heatmaps_set1.png')
     # Show the plots
-    plt.show()
+    #plt.show()
 
 
 if __name__ == "__main__":
@@ -174,7 +174,7 @@ if __name__ == "__main__":
                 # for i in range(4):
                 #     print(f"Target error: {target_distances[i]}, Overshoot error: {overshoot_distances[i]}")
 
-                error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric_set)
+                error_metric = c1 * sum(target_distances) + c2 * sum(overshoot_distances)
                 metric_data.append([latency, scale, error_metric, completion_time])
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])
