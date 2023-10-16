@@ -87,8 +87,8 @@ if __name__ == "__main__":
 
     # Loop through each CSV file in data folder
     for filename in os.listdir(data_folder):
-        if count == 3:
-            break
+        # if count == 3:
+        #     break
         if filename.endswith(".csv"):
             file_path = os.path.join(data_folder, filename)        
             match = re.match(pattern, filename)
@@ -110,7 +110,7 @@ if __name__ == "__main__":
                 data_segments = []
                 target_distances = []
                 overshoot_distances = []
-                esd_metric = []
+                esd_metric_set = []
 
                 # Calculate mean and standard deviation of sampling rate in motion data file
                 dt = df_noclick["time"].diff()
@@ -139,31 +139,47 @@ if __name__ == "__main__":
                     end_idx = click_idx+1
                     segment = df.iloc[start_idx:end_idx]
                     data_segments.append(segment)
+                    signal = segment[cur_d]
 
                     # Calculate Overshoot distance
-                    overshoot_distances.append(compute_os_dist(segment[cur_d], segment["time"]))
+                    overshoot_distances.append(compute_os_dist(signal, segment["time"]))
 
                     # Calculate ESD
                     fc = 0.1 # Hz
                     order = 5
-                    filtered_signal = high_butter(segment[cur_d], fs_mean, fc, order)
-                    freq, esd = compute_esd(segment[cur_d], fs_mean)
+                    duration = len(signal) / fs_mean
+                    padding_duration = 0.1 * duration # seconds
+                    num_padding_samples = int(padding_duration * fs_mean) # per side
+                    padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
+                    filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
+                    filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
+                    freq, esd = compute_esd(signal, fs_mean)
                     # Integrate ESD for total energy
-                    esd_metric.append(simps(esd, freq))
+                    esd_metric = simps(esd, freq)
+                    esd_metric_set.append(esd_metric)
 
-                    plt.semilogy(freq, esd)
-                    plt.xlabel('Frequency (Hz)')
-                    plt.ylabel('Energy/Frequency')
-                    plt.show()
+                    if latency == 0.75 and (scale == 0.2 or scale == 1.0):
+                         fig, axes = plt.subplots(2, 1, figsize=(12, 8))
+                         fig.suptitle(f"Latency = {latency}, Scale = {scale}")
+
+                         axes[0].plot(segment['time'], segment[cur_d])
+                         axes[0].set_title("Distance From Target")
+
+                         axes[1].semilogy(freq, esd)
+                         axes[1].set_title(f"PSD of Distance Signal")
+                         plt.savefig(f"psd_l{latency}s{scale}_{cur_d}.png")
+                         #plt.show()
 
         
                 # for i in range(4):
                 #     print(f"Target error: {target_distances[i]}, Overshoot error: {overshoot_distances[i]}")
 
-                error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric)
+                error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric_set)
                 metric_data.append([latency, scale, error_metric, completion_time])
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])
+    plot_heatmaps(metric_df)
+    
     # print(metric_df)
                     # # Create a 2x2 subplot for each data segment
                     # fig, axes = plt.subplots(2, 2, figsize=(12, 8))
