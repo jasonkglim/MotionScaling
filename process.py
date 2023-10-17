@@ -85,6 +85,8 @@ if __name__ == "__main__":
 
     # cutoff frequency
 
+    signals = []
+
     # Loop through each CSV file in data folder
     for filename in os.listdir(data_folder):
         # if count == 3:
@@ -145,43 +147,37 @@ if __name__ == "__main__":
                     overshoot_distances.append(compute_os_dist(signal, segment["time"]))
 
                     # Calculate ESD
-                    fc = 0.1 # Hz
-                    order = 5
-                    duration = len(signal) / fs_mean
-                    padding_duration = 0.1 * duration # seconds
-                    num_padding_samples = int(padding_duration * fs_mean) # per side
-                    padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
-                    filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
-                    filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
-                    freq, esd = compute_esd(signal, fs_mean)
-                    # Integrate over specified interval for total energy
-                    start_freq = fc
-                    start_idx = np.argmax(freq >= start_freq)
-                    esd_metric = simps(esd[start_idx:], freq[start_idx:])
-                    esd_metric_set.append(esd_metric)
+                    # fc = 0.1 # Hz
+                    # order = 5
+                    # duration = len(signal) / fs_mean
+                    # padding_duration = 0.1 * duration # seconds
+                    # num_padding_samples = int(padding_duration * fs_mean) # per side
+                    # padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
+                    # filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
+                    # filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
+                    # freq, esd = compute_esd(signal, fs_mean)
+                    # # Integrate over specified interval for total energy
+                    # start_freq = fc
+                    # start_idx = np.argmax(freq >= start_freq)
+                    # esd_metric = simps(esd[start_idx:], freq[start_idx:])
+                    # esd_metric_set.append(esd_metric)
 
-                    if latency == 0.75 and (scale == 0.2 or scale == 1.0):
-                         fig, axes = plt.subplots(2, 1, figsize=(12, 8))
-                         fig.suptitle(f"Latency = {latency}, Scale = {scale}")
+                    # fig, axes = plt.subplots(2, 1, figsize=(12, 8))
+                    # fig.suptitle(f"Latency = {latency}, Scale = {scale}")
+                    if (latency == 0.75 and scale == 0.2 and i == 3) or (latency == 0.75 and scale == 1.0 and i == 1):
 
-                         axes[0].plot(segment['time'], segment[cur_d])
-                         axes[0].set_title("Distance From Target")
-
-                         axes[1].semilogy(freq, esd)
-                         axes[1].axvline(start_freq)
-                         axes[1].set_title(f"PSD of Distance Signal, Sum = {esd_metric}")
-                         plt.savefig(f"figures/set1_psd/psd_l{latency}s{scale}_{cur_d}.png")
-                         #plt.show()
+                        signal_data = {"signal": signal, "time": segment["time"], "latency": latency, "scale": scale, "target": i+1}
+                        signals.append(signal_data)
 
         
                 # for i in range(4):
                 #     print(f"Target error: {target_distances[i]}, Overshoot error: {overshoot_distances[i]}")
 
-                error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric_set)
-                metric_data.append([latency, scale, error_metric, completion_time])
+                # error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric_set)
+                # metric_data.append([latency, scale, error_metric, completion_time])
                 
-    metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])
-    plot_heatmaps(metric_df)
+    # metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])
+    # plot_heatmaps(metric_df)
     
     # print(metric_df)
                     # # Create a 2x2 subplot for each data segment

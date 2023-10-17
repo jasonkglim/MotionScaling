@@ -1,134 +1,70 @@
-import process
+from process import high_butter, compute_esd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fft
+import pandas as pd
+from scipy.integrate import simps
 
-# Define the parameters
-duration = 10  # seconds
-sampling_frequency = 93  # Hz
-num_samples = int(duration * sampling_frequency)
-time = np.linspace(0, duration, num_samples)
 
-signals = []
+# Which files to read in
+param_set = [(0.75, 1.0, 2), (0.75, 0.2, 4)]
 
-# Generate the signals
-# signal1 = 10 - (time / duration) * 10  # Linear function from 100 to 0
-# signal2 = 5 - (time / duration) * 5   # Linear function from 50 to 0
-# signals.append(signal1)
-# signals.append(signal2)
+# Set up figure
+fig, axes = plt.subplots(2, len(param_set), figsize=(24, 12))
 
-# Decaying sine function with high frequency
-frequency_high = 1  # High frequency
-amplitude_high = 10
-decay_high = 0.5
-# signal3 = amplitude_high * (np.cos(2 * np.pi * frequency_high * time))**2 * np.exp(-decay_high * time)
+for i, params in enumerate(param_set):
+    latency = params[0]
+    scale = params[1]
+    target_num = params[2]
 
-# # Decaying sine function with lower frequency
-# frequency_low = 0.1   # Lower frequency
-# amplitude_low = 10
-# decay_low = 0.5
-# signal4 = amplitude_low * (np.cos(2 * np.pi * frequency_low * time))**2 * np.exp(-decay_low * time)
+    filename = f"data_files/set1/l{latency}s{scale}.csv"
+    df = pd.read_csv(filename)
 
-# signals.append(signal3)
-# signals.append(signal4)
+    # Find the indices where "click" is True
+    click_indices = df.index[df['click']]
+    df_noclick = df[~df["click"]]
 
-# signals.append( np.cos(2*np.pi* 0.01 * time) )
-# signals.append( np.cos(2*np.pi* 0.1 * time) )
-# signals.append( np.cos(2*np.pi* 1 * time) )
+    # Calculate mean and standard deviation of sampling rate in motion data file
+    dt = df_noclick["time"].diff()
+    fs = 1.0 / dt
+    fs_mean = np.mean(fs)
+    fs_std = np.std(fs)
+    if fs_std > 5:
+        print("Warning! Sampling Rate std is: ", fs_std, "!")
 
-for i in range(1, 2):
-    signal = np.cos(2*np.pi* 2 * time)  #amplitude_high * (np.cos(2 * np.pi * frequency_high * time))**2 * np.exp(-decay_high * time)
-    padding_duration = duration / 2 # seconds
-    num_padding_samples = int(padding_duration * sampling_frequency) # per side
-    padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
+    # Get desired segment
+    d = f"d{target_num}"
+    start_idx = click_indices[target_num-2]+1 if target_num > 1 else 0
+    end_idx = click_indices[target_num-1]+1
+    print(start_idx, end_idx)
+    segment = df.iloc[start_idx:end_idx]
+    time = segment["time"]
+    signal = segment[d]
 
-    cutoff_frequency = 0.1
-    filt_order = 6
-    filtered_signal = process.high_butter(signal, sampling_frequency, cutoff_frequency, order=filt_order)
-    filtered_padded_signal = process.high_butter(padded_signal, sampling_frequency, cutoff_frequency, order=filt_order)
-    signal_fft = np.abs(np.fft.fft(signal))
-    filtered_signal_fft = np.abs(np.fft.fft(filtered_signal))
-    padded_signal_fft = np.abs(np.fft.fft(padded_signal))
-    padded_filtered_signal_fft = np.abs(np.fft.fft(filtered_padded_signal[num_padding_samples:-num_padding_samples]))
-    padded_freq = np.fft.fftfreq(len(padded_signal), 1.0 / sampling_frequency)
-    freq = np.fft.fftfreq(len(signal), 1.0 / sampling_frequency)
+    # Calculate ESD
+    fc = 0.1 # Hz
+    order = 5
+    # duration = len(signal) / fs_mean
+    # padding_duration = 0.1 * duration # seconds
+    # num_padding_samples = int(padding_duration * fs_mean) # per side
+    # padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
+    # filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
+    # filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
+    freq, esd = compute_esd(signal, fs_mean)
+    # Integrate over specified interval for total energy
+    start_freq = fc
+    start_idx = np.argmax(freq >= start_freq)
+    esd_metric = simps(esd[start_idx:], freq[start_idx:])
+
+    # Plot
+    axes[0, i].plot(time, signal)
+    axes[0, i].set_title(f"Original Signal: Latency {latency}, Scale {scale}, Target {target_num}")
+
+    axes[1, i].semilogy(freq, esd)
+    axes[1, i].set_title("ESD")
+
+
+plt.tight_layout()
+plt.show()
     
-    plt.figure(figsize=(12, 6))
-
-    plt.subplot(421)
-    plt.plot(time, signal)
-    plt.title("Original Signal")
-
-    plt.subplot(422)
-    plt.plot(padded_signal)
-    plt.title(f"Padded Signal")
-
-    plt.subplot(423)
-    plt.plot(time, filtered_signal)
-    plt.title(f"Filtered Original Signal, order = {filt_order}, fc = {cutoff_frequency}")
-
-    plt.subplot(424)
-    plt.plot(time, filtered_padded_signal[num_padding_samples:-num_padding_samples])
-    # plt.ylim(-1, 1)
-    plt.title("Unpadded Filtered Padded Signal")
-
-    plt.subplot(425)
-    plt.plot(freq, signal_fft)
-    plt.xlim(0, 10)
-    plt.title("FFT of Original Signal")
-
-    plt.subplot(426)
-    plt.xlim(0, 10)
-    plt.plot(freq, filtered_signal_fft)
-    plt.title("FFT of Filtered Signal")
-
-    plt.subplot(427)
-    plt.plot(padded_freq, padded_signal_fft)
-    plt.xlim(0, 10)
-    plt.title("FFT of Padded Signal")
-
-    plt.subplot(428)
-    plt.plot(freq, padded_filtered_signal_fft)
-    plt.xlim(0, 10)
-    plt.title("FFT of Filtered Padded Signal")
-
-    
-
-    plt.tight_layout()
-    # plt.savefig(f"figures/test_plot{i+1}.png")
-    plt.show()
-
-
-# for i in range(len(signals)):
-
-#     cutoff_frequency = 1
-#     freq_unfilt, esd_unfilt = process.compute_esd(signals[i], sampling_frequency)
-#     filtered_signal = process.high_butter(signals[i], sampling_frequency, cutoff_frequency, order=1)
-#     freq_filt, esd_filt = process.compute_esd(filtered_signal, sampling_frequency)
-    
-#     plt.figure(figsize=(12, 6))
-    
-#     plt.subplot(221)
-#     plt.plot(time, signals[i])
-#     plt.title("Original Signal")
-
-#     plt.subplot(222)
-#     plt.plot(time, filtered_signal)
-#     plt.title(f"Filtered Signal, fc = {cutoff_frequency}")
-    
-#     plt.subplot(223)
-#     plt.semilogy(freq_unfilt, esd_unfilt)
-#     plt.title("ESD of Original Signal")
-#     plt.xlabel('Frequency (Hz)')
-#     plt.ylabel('Energy/Frequency')
-
-#     plt.subplot(224)
-#     plt.semilogy(freq_filt, esd_filt)
-#     plt.title("ESD of Filtered Signal")
-#     plt.xlabel('Frequency (Hz)')
-#     plt.ylabel('Energy/Frequency')
-
-#     plt.tight_layout()
-#     # plt.savefig(f"figures/test_plot{i+1}.png")
-#     plt.show()
     
