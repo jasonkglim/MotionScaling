@@ -63,7 +63,7 @@ def plot_heatmaps(metric_df):
 
     # Adjust subplot layout
     plt.tight_layout()
-    plt.savefig('heatmaps_set1.png')
+    plt.savefig('figures/set1_psd/heatmaps_set1.png')
     # Show the plots
     #plt.show()
 
@@ -154,8 +154,10 @@ if __name__ == "__main__":
                     filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
                     filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
                     freq, esd = compute_esd(signal, fs_mean)
-                    # Integrate ESD for total energy
-                    esd_metric = simps(esd, freq)
+                    # Integrate over specified interval for total energy
+                    start_freq = fc
+                    start_idx = np.argmax(freq >= start_freq)
+                    esd_metric = simps(esd[start_idx:], freq[start_idx:])
                     esd_metric_set.append(esd_metric)
 
                     if latency == 0.75 and (scale == 0.2 or scale == 1.0):
@@ -166,15 +168,16 @@ if __name__ == "__main__":
                          axes[0].set_title("Distance From Target")
 
                          axes[1].semilogy(freq, esd)
-                         axes[1].set_title(f"PSD of Distance Signal")
-                         plt.savefig(f"psd_l{latency}s{scale}_{cur_d}.png")
+                         axes[1].axvline(start_freq)
+                         axes[1].set_title(f"PSD of Distance Signal, Sum = {esd_metric}")
+                         plt.savefig(f"figures/set1_psd/psd_l{latency}s{scale}_{cur_d}.png")
                          #plt.show()
 
         
                 # for i in range(4):
                 #     print(f"Target error: {target_distances[i]}, Overshoot error: {overshoot_distances[i]}")
 
-                error_metric = c1 * sum(target_distances) + c2 * sum(overshoot_distances)
+                error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric_set)
                 metric_data.append([latency, scale, error_metric, completion_time])
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])

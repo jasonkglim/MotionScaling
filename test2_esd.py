@@ -12,77 +12,77 @@ time = np.linspace(0, duration, num_samples)
 signals = []
 
 # Generate the signals
-# signal1 = 10 - (time / duration) * 10  # Linear function from 100 to 0
-# signal2 = 5 - (time / duration) * 5   # Linear function from 50 to 0
-# signals.append(signal1)
-# signals.append(signal2)
+signal1 = 10 - (time / duration) * 10  # Linear function from 100 to 0
+signal2 = 5 - (time / duration) * 5   # Linear function from 50 to 0
+signals.append(signal1)
+signals.append(signal2)
 
-# # Decaying sine function with high frequency
-# frequency_high = 1  # High frequency
-# amplitude_high = 10
-# decay_high = 0.5
-# signal3 = amplitude_high * (np.cos(2 * np.pi * frequency_high * time))**2 * np.exp(-decay_high * time)
+# Decaying sine function with high frequency
+frequency_high = 1  # High frequency
+amplitude_high = 10
+decay_high = 0.5
+signal3 = amplitude_high * (np.cos(2 * np.pi * frequency_high * time))**2 * np.exp(-decay_high * time)
 
-# # Decaying sine function with lower frequency
-# frequency_low = 0.1   # Lower frequency
-# amplitude_low = 10
-# decay_low = 0.5
-# signal4 = amplitude_low * (np.cos(2 * np.pi * frequency_low * time))**2 * np.exp(-decay_low * time)
+# Decaying sine function with lower frequency
+frequency_low = 1   # Lower frequency
+amplitude_low = 5
+decay_low = 0.5
+signal4 = amplitude_low * (np.cos(2 * np.pi * frequency_low * time))**2 * np.exp(-decay_low * time)
 
-# signals.append(signal3)
-# signals.append(signal4)
+signals.append(signal3)
+signals.append(signal4)
 
 # signals.append( np.cos(2*np.pi* 0.01 * time) )
 # signals.append( np.cos(2*np.pi* 0.1 * time) )
 # signals.append( np.cos(2*np.pi* 1 * time) )
-signal =  np.cos(2*np.pi* 2 * time)
+# signal =  np.cos(2*np.pi* 2 * time)
 padding_duration = 5 # seconds
-num_padding_samples = padding_duration * sampling_frequency # per side
-padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
+# num_padding_samples = padding_duration * sampling_frequency # per side
+# padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
 
 cutoff_frequency = 0.1
 filt_order = 6
-filtered_signal = process.high_butter(signal, sampling_frequency, cutoff_frequency, order=filt_order)
-filtered_padded_signal = process.high_butter(padded_signal, sampling_frequency, cutoff_frequency, order=filt_order)
-filtered_padded_signal = filtered_padded_signal[num_padding_samples:-num_padding_samples]
+# filtered_signal = process.high_butter(signal, sampling_frequency, cutoff_frequency, order=filt_order)
+# filtered_padded_signal = process.high_butter(padded_signal, sampling_frequency, cutoff_frequency, order=filt_order)
+#filtered_padded_signal = filtered_padded_signal[num_padding_samples:-num_padding_samples]
 
-freq, esd = process.compute_esd(signal, sampling_frequency)
-freq_unpad, esd_unpad = process.compute_esd(filtered_signal, sampling_frequency)
-freq_pad, esd_pad = process.compute_esd(filtered_padded_signal, sampling_frequency)
-esd_metric = simps(esd, freq)
-esd_metric_unpad = simps(esd_unpad, freq_unpad)
-esd_metric_pad = simps(esd_pad, freq_pad)
+# Make figure
+fig, axes = plt.subplots(2, len(signals), figsize=(24, 6))
 
+for i, signal in enumerate(signals):
+    
+    freq, esd = process.compute_esd(signal, sampling_frequency)
+    # freq_unpad, esd_unpad = process.compute_esd(filtered_signal, sampling_frequency)
+    # freq_pad, esd_pad = process.compute_esd(filtered_padded_signal, sampling_frequency)
+    esd_metric = simps(esd, freq)
+    # esd_metric_unpad = simps(esd_unpad, freq_unpad)
+    # esd_metric_pad = simps(esd_pad, freq_pad)
 
-plt.figure(figsize=(12, 6))
+    axes[0, i].plot(time, signal)
+    axes[0, i].set_title("Original Signal")
 
-plt.subplot(421)
-plt.plot(time, signal)
-plt.title("Original Signal")
+    axes[1, i].semilogy(freq, esd)
+    axes[1, i].set_title(f"ESD of Signal, Sum = {esd_metric}")
 
-plt.subplot(422)
-plt.plot(padded_signal)
-plt.title(f"Padded Signal")
+    # plt.subplot(423)
+    # plt.plot(time, filtered_signal)
+    # plt.title("Filtered Original Signal")
 
-plt.subplot(423)
-plt.plot(time, filtered_signal)
-plt.title("Filtered Original Signal")
+    # plt.subplot(424)
+    # plt.plot(time, filtered_padded_signal)
+    # plt.title("Unpadded Filtered Padded Signal")
 
-plt.subplot(424)
-plt.plot(time, filtered_padded_signal)
-plt.title("Unpadded Filtered Padded Signal")
+    # plt.subplot(425)
+    # plt.semilogy(freq, esd)
+    # plt.title(f"ESD of Original Signal = {esd_metric}")
 
-plt.subplot(425)
-plt.semilogy(freq, esd)
-plt.title(f"ESD of Original Signal = {esd_metric}")
+    # plt.subplot(426)
+    # plt.semilogy(freq_unpad, esd_unpad)
+    # plt.title(f"ESD of unpadded filtered signal = {esd_metric_unpad}")
 
-plt.subplot(426)
-plt.semilogy(freq_unpad, esd_unpad)
-plt.title(f"ESD of unpadded filtered signal = {esd_metric_unpad}")
-
-plt.subplot(427)
-plt.semilogy(freq_pad, esd_pad)
-plt.title(f"ESD of padded filtered signal = {esd_metric_pad}")
+    # plt.subplot(427)
+    # plt.semilogy(freq_pad, esd_pad)
+    # plt.title(f"ESD of padded filtered signal = {esd_metric_pad}")
 
 
 plt.tight_layout()
