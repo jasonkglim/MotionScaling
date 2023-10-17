@@ -1,16 +1,16 @@
-from process import high_butter, compute_esd
+from process import high_butter, compute_esd, compute_fft
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.fft import fft
 import pandas as pd
 from scipy.integrate import simps
+from scipy.signal import welch
 
 
 # Which files to read in
 param_set = [(0.75, 1.0, 2), (0.75, 0.2, 4)]
 
 # Set up figure
-fig, axes = plt.subplots(2, len(param_set), figsize=(24, 12))
+fig, axes = plt.subplots(3, len(param_set), figsize=(24, 12))
 
 for i, params in enumerate(param_set):
     latency = params[0]
@@ -50,18 +50,26 @@ for i, params in enumerate(param_set):
     # padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
     # filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
     # filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
-    freq, esd = compute_esd(signal, fs_mean)
+    #freq, esd = compute_esd(signal, fs_mean)
+    #freq_fft, esd_fft = compute_esd_from_fft(signal, fs_mean) 
     # Integrate over specified interval for total energy
-    start_freq = fc
-    start_idx = np.argmax(freq >= start_freq)
-    esd_metric = simps(esd[start_idx:], freq[start_idx:])
+    # start_freq = fc
+    # start_idx = np.argmax(freq >= start_freq)
+    # esd_metric = simps(esd[start_idx:], freq[start_idx:])
+    freq, psd = welch(signal, fs=fs_mean)
+    freq_fft, signal_fft = compute_fft(signal, fs_mean)
+    fft_mag = np.abs(signal_fft)
 
     # Plot
     axes[0, i].plot(time, signal)
     axes[0, i].set_title(f"Original Signal: Latency {latency}, Scale {scale}, Target {target_num}")
 
-    axes[1, i].semilogy(freq, esd)
-    axes[1, i].set_title("ESD")
+    axes[1, i].plot(freq, psd)
+    axes[1, i].set_title("PSD")
+
+    axes[2, i].plot(freq_fft, fft_mag)
+    axes[2, i].set_xlim(0, 40)
+    axes[2, i].set_title("FFT")
 
 
 plt.tight_layout()

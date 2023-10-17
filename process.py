@@ -7,6 +7,7 @@ from scipy.integrate import simps
 import re
 import os
 from scipy.signal import butter, filtfilt, welch
+from scipy.fft import fft, fftfreq, fftshift
 
 ### Functions for calculating metrics
 
@@ -27,6 +28,19 @@ def compute_esd(signal, fs):
     esd = psd * duration    
 
     return frequencies, esd
+
+# Trying different method of computing esd by just squaring magnitude of fft
+def compute_fft(signal, fs):
+
+    # Compute fft of signal
+    signal = np.array(signal)
+    signal_fft = fftshift(fft(signal))
+    freq = fftshift(fftfreq(len(signal), 1.0 / fs))
+
+    # # ESD is magnitued squared
+#    esd = (np.abs(signal_fft))**2
+
+    return freq, signal_fft
 
 
 ### Helper functions
