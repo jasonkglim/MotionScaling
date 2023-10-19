@@ -17,7 +17,15 @@ def compute_os_dist(distance, time):
     dist_derivative = np.gradient(distance, time)
     return simps(np.maximum(np.nan_to_num(dist_derivative, nan=0), 0), time)
 
-# Calculates energy spectral density of high-passed signal
+# Calculates power spectral density of signal
+def compute_psd(signal, fs):
+
+    # Compute the PSD of the filtered signal
+    frequencies, psd = welch(signal, fs=fs)
+
+    return frequencies, psd
+
+# Calculates energy spectral density of signal (PSD scaled by signal duration)
 def compute_esd(signal, fs):
 
     # Compute the PSD of the filtered signal
@@ -77,7 +85,7 @@ def plot_heatmaps(metric_df):
 
     # Adjust subplot layout
     plt.tight_layout()
-    plt.savefig('figures/set1_psd/error_time_heatmaps_psd.png')
+    plt.savefig('figures/set1_psd/error_time_heatmaps_esdx10_onlyesd.png')
     # Show the plots
     plt.show()
 
@@ -95,7 +103,7 @@ if __name__ == "__main__":
 
     # Coefficients for error metric
     c1 = 1
-    c2 = 1
+    c2 = 10
 
     # cutoff frequency
 
@@ -156,10 +164,10 @@ if __name__ == "__main__":
                     segment = df.iloc[start_idx:end_idx]
                     data_segments.append(segment)
                     signal = np.array(segment[cur_d])
-                    normalized_signal = signal / signal[0]
+                    normalized_signal = signal / np.max(signal)
 
                     # Calculate Overshoot distance
-                    overshoot_distances.append(compute_os_dist(signal, segment["time"]))
+                    overshoot_distances.append(compute_os_dist(normalized_signal, segment["time"]))
 
                     # Calculate ESD
                     fc = 0.1 # Hz
@@ -193,7 +201,7 @@ if __name__ == "__main__":
                 # for i in range(4):
                 #     print(f"Target error: {target_distances[i]}, Overshoot error: {overshoot_distances[i]}")
 
-                error_metric = c1 * sum(target_distances) + c2 * sum(esd_metric_set)
+                error_metric = c2 * sum(esd_metric_set)
                 metric_data.append([latency, scale, error_metric, completion_time])
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])
