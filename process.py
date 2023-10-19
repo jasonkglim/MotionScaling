@@ -14,8 +14,8 @@ from scipy.fft import fft, fftfreq, fftshift
 # Calculates overshoot distance. takes in dataframe representing segment of trial
 def compute_os_dist(distance, time):
     # Calculate positive area under derivative
-    derivative_d = distance.diff() / time.diff()
-    return simps(np.maximum(derivative_d.fillna(0), 0), time)
+    dist_derivative = np.gradient(distance, time)
+    return simps(np.maximum(np.nan_to_num(dist_derivative, nan=0), 0), time)
 
 # Calculates energy spectral density of high-passed signal
 def compute_esd(signal, fs):
@@ -77,7 +77,7 @@ def plot_heatmaps(metric_df):
 
     # Adjust subplot layout
     plt.tight_layout()
-    plt.savefig('figures/set1_psd/heatmaps_set1.png')
+    plt.savefig('figures/set1_psd/error_time_heatmaps_psd.png')
     # Show the plots
     plt.show()
 
@@ -155,7 +155,8 @@ if __name__ == "__main__":
                     end_idx = click_idx+1
                     segment = df.iloc[start_idx:end_idx]
                     data_segments.append(segment)
-                    signal = segment[cur_d]
+                    signal = np.array(segment[cur_d])
+                    normalized_signal = signal / signal[0]
 
                     # Calculate Overshoot distance
                     overshoot_distances.append(compute_os_dist(signal, segment["time"]))
@@ -169,16 +170,16 @@ if __name__ == "__main__":
                     # padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
                     # filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
                     # filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
-                    # freq, esd = compute_esd(signal, fs_mean)
+                    freq, esd = compute_esd(normalized_signal, fs_mean)
 
                     # Compute esd through fft
-                    freq, signal_fft = compute_fft(signal, fs_mean)
-                    fft_mag = np.abs(signal_fft)**2
+                    # freq, signal_fft = compute_fft(normalized_signal, fs_mean)
+                    # fft_mag = np.abs(signal_fft)**2
                     
                     # # Integrate over specified interval for total energy
                     start_freq = fc
                     start_idx = np.argmax(freq >= start_freq)
-                    esd_metric = simps(fft_mag[start_idx:], freq[start_idx:])
+                    esd_metric = simps(esd, freq)
                     esd_metric_set.append(esd_metric)
 
                     # fig, axes = plt.subplots(2, 1, figsize=(12, 8))
@@ -213,9 +214,9 @@ if __name__ == "__main__":
     # Calculate and plot derivatives
 
             
-    #         smoothed_derivative_d = derivative_d.rolling(window=5).mean().fillna(0)
+    #         smoothed_dist_derivative = dist_derivative.rolling(window=5).mean().fillna(0)
 
-    #         ax.plot(segment['time'], smoothed_derivative_d, label='{0} Derivative'.format(cur_d))
+    #         ax.plot(segment['time'], smoothed_dist_derivative, label='{0} Derivative'.format(cur_d))
     #         area = 
     #         print("Area for {0}, Target {1}: {2}".format(csv_file, i+1, area))
             

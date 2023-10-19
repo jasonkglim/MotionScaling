@@ -39,7 +39,8 @@ for i, params in enumerate(param_set):
     print(start_idx, end_idx)
     segment = df.iloc[start_idx:end_idx]
     time = segment["time"]
-    signal = segment[d]
+    signal = np.array(segment[d])
+    normalized_signal = signal / signal[0]
 
     # Calculate ESD
     fc = 0.1 # Hz
@@ -50,29 +51,33 @@ for i, params in enumerate(param_set):
     # padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
     # filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
     # filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
-    #freq, esd = compute_esd(signal, fs_mean)
+
     #freq_fft, esd_fft = compute_esd_from_fft(signal, fs_mean) 
     # Integrate over specified interval for total energy
     # start_freq = fc
     # start_idx = np.argmax(freq >= start_freq)
     # esd_metric = simps(esd[start_idx:], freq[start_idx:])
-    freq, psd = welch(signal, fs=fs_mean)
-    freq_fft, signal_fft = compute_fft(signal, fs_mean)
-    fft_mag = np.abs(signal_fft)
+    # freq, psd = welch(normalized_signal, fs=fs_mean)
+    freq, esd = compute_esd(normalized_signal, fs_mean)    
+    freq_fft, signal_fft = compute_fft(normalized_signal, fs_mean)
+    fft_mag = np.abs(signal_fft)**2
+    esd_metric = simps(esd, freq)
+    esd_fft_metric = simps(fft_mag, freq_fft)
 
     # Plot
-    axes[0, i].plot(time, signal)
-    axes[0, i].set_title(f"Original Signal: Latency {latency}, Scale {scale}, Target {target_num}")
+    axes[0, i].plot(time, normalized_signal)
+    axes[0, i].set_title(f"Normalized Signal: Latency {latency}, Scale {scale}, Target {target_num}")
 
-    axes[1, i].plot(freq, psd)
-    axes[1, i].set_title("PSD")
+    axes[1, i].plot(freq, esd)
+    axes[1, i].set_title(f"ESD, Integral[0:] = {esd_metric}")
 
     axes[2, i].plot(freq_fft, fft_mag)
     axes[2, i].set_xlim(0, 40)
-    axes[2, i].set_title("FFT")
+    axes[2, i].set_title(f"FFT mag^2, Integral[0:] = {esd_fft_metric}")
 
 
 plt.tight_layout()
+plt.savefig("figures/signal_norm_fft_esd.png")
 plt.show()
     
     
