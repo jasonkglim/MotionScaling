@@ -1,10 +1,10 @@
-from process import high_butter, compute_esd, compute_fft, compute_os_dist, compute_psd
+from process import high_butter, compute_esd, compute_fft, compute_osd, compute_psd
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.integrate import simps
 from scipy.signal import welch
-
+import csv
 
 # Which files to read in
 param_set = [(0.45, 0.8), (0.45, 1.0)]
@@ -55,8 +55,8 @@ for i, params in enumerate(param_set):
         normalized_signal = signal / np.max(signal)
         
         # Calculate Overshoot distance
-        osd.append(compute_os_dist(signal, segment["time"]))
-        norm_osd.append(compute_os_dist(normalized_signal, segment["time"]))
+        osd.append(compute_osd(signal, segment["time"]))
+        norm_osd.append(compute_osd(normalized_signal, segment["time"]))
         
         # Calculate ESD
         fc = 0.1 # Hz
@@ -76,24 +76,28 @@ for i, params in enumerate(param_set):
         
         # # Integrate over specified interval for total energy
         start_freq = 0
-        start_idx = np.argmax(freq_fft >= start_freq)
+        start_idx = np.argmax(freq_fft > start_freq)
         esd_metric = simps(esd, freq)
         psd_metric = simps(psd, freq)
         esd_metric_set.append(esd_metric)
         psd_metric_set.append(psd_metric)
-        esd_fft_metric = simps(fft_mag, freq_fft)
+        esd_fft_metric = simps(fft_mag[start_idx:], freq_fft[start_idx:])
         esd_fft_metric_set.append(esd_fft_metric)
+
+        with open(f"l{latency}s{scale}_t{i+1}_fft_zeroremoved.csv", mode='w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(list(zip(freq_fft[start_idx:], fft_mag[start_idx:])))
 
         axes[0, i].plot(time, signal)
         axes[0, i].axhline(0, color='black')
         axes[0, i].set_title(f"Target {i+1}, OSD = {osd[-1]}")
 
-        axes[1, i].plot(freq, psd)
+        axes[1, i].scatter(freq, psd)
         axes[1, i].set_xlim(-5, 40)
         #axes[1, i].axvline(0, linestyle='--')
         axes[1, i].set_title(f"PSD, Integral[0:] = {psd_metric}")
 
-        axes[2, i].plot(freq, esd)
+        axes[2, i].scatter(freq, esd)
         axes[2, i].set_xlim(-5, 40)
         #axes[2, i].axvline(0, linestyle='--')
         axes[2, i].set_title(f"ESD, Integral[0:] = {esd_metric}")
@@ -101,7 +105,7 @@ for i, params in enumerate(param_set):
         axes[3, i].plot(freq_fft[start_idx:], fft_mag[start_idx:])
         axes[3, i].set_xlim(-5, 40)
         #axes[3, i].axvline(0, linestyle='--')
-        axes[3, i].set_title(f"FFT mag^2, Integral[0:] = {esd_fft_metric}")
+        axes[3, i].set_title(f"FFT mag^2, Integral(0:] = {esd_fft_metric}")
 
     fig.suptitle(f"Latency {latency}, Scale {scale}, OSD (not norm) = {sum(osd):.3f}, PSD = {sum(psd_metric_set):.3f}, ESD = {sum(esd_metric_set):.3f}, ESD/FFT = {sum(esd_fft_metric_set):.3f}, Target Dist = {sum(target_distances):.3f}")
     plt.tight_layout()

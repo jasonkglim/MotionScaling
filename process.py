@@ -12,7 +12,7 @@ from scipy.fft import fft, fftfreq, fftshift
 ### Functions for calculating metrics
 
 # Calculates overshoot distance. takes in dataframe representing segment of trial
-def compute_os_dist(distance, time):
+def compute_osd(distance, time):
     # Calculate positive area under derivative
     dist_derivative = np.gradient(distance, time)
     return simps(np.maximum(np.nan_to_num(dist_derivative, nan=0), 0), time)
@@ -85,9 +85,9 @@ def plot_heatmaps(metric_df):
 
     # Adjust subplot layout
     plt.tight_layout()
-    plt.savefig('figures/set1_psd/error_time_heatmaps_esdx10_onlyesd.png')
+    plt.savefig('figures/set1_psd/error_time_heatmaps_fftonly_zeroremoved.png')
     # Show the plots
-    plt.show()
+#    plt.show()
 
 
 if __name__ == "__main__":
@@ -133,8 +133,10 @@ if __name__ == "__main__":
 
                 data_segments = []
                 target_distances = []
-                overshoot_distances = []
+                osd = []
                 esd_metric_set = []
+                psd_metric_set = []
+                esd_fft_metric_set = []
 
                 # Calculate mean and standard deviation of sampling rate in motion data file
                 dt = df_noclick["time"].diff()
@@ -150,6 +152,7 @@ if __name__ == "__main__":
                 # print("Mean and std of track_mouse fn call sample rate: ", tt_fs_mean, tt_fs_std)
                 # print()
 
+                fig, axes = plt.subplots(4, 4, figsize=(24, 12))
 
                 # Split the data into segments using the click indices
                 for i, click_idx in enumerate(click_indices):
@@ -164,10 +167,12 @@ if __name__ == "__main__":
                     segment = df.iloc[start_idx:end_idx]
                     data_segments.append(segment)
                     signal = np.array(segment[cur_d])
+                    time = np.array(segment["time"])
+                    time = time - time[0]
                     normalized_signal = signal / np.max(signal)
 
                     # Calculate Overshoot distance
-                    overshoot_distances.append(compute_os_dist(normalized_signal, segment["time"]))
+                    osd.append(compute_osd(signal, segment["time"]))
 
                     # Calculate ESD
                     fc = 0.1 # Hz
@@ -178,31 +183,52 @@ if __name__ == "__main__":
                     # padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
                     # filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
                     # filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
+
+                    # Compute spectrums
                     freq, esd = compute_esd(normalized_signal, fs_mean)
-
-                    # Compute esd through fft
-                    # freq, signal_fft = compute_fft(normalized_signal, fs_mean)
-                    # fft_mag = np.abs(signal_fft)**2
+                    _, psd = compute_psd(normalized_signal, fs_mean)
+                    freq_fft, signal_fft = compute_fft(normalized_signal, fs_mean)
+                    fft_mag = np.abs(signal_fft)**2
                     
-                    # # Integrate over specified interval for total energy
-                    start_freq = fc
-                    start_idx = np.argmax(freq >= start_freq)
+                    # Compute Metrics 
+                    start_freq = 0
+                    start_idx = np.argmax(freq_fft > start_freq)
                     esd_metric = simps(esd, freq)
+                    psd_metric = simps(psd, freq)
                     esd_metric_set.append(esd_metric)
+                    psd_metric_set.append(psd_metric)
+                    esd_fft_metric = simps(fft_mag[start_idx:], freq_fft[start_idx:])
+                    esd_fft_metric_set.append(esd_fft_metric)
 
-                    # fig, axes = plt.subplots(2, 1, figsize=(12, 8))
-                    # fig.suptitle(f"Latency = {latency}, Scale = {scale}")
-                 #    if (latency == 0.75 and scale == 0.2 and i == 3) or (latency == 0.75 and scale == 1.0 and i == 1):
+                    axes[0, i].plot(time, signal)
+                    axes[0, i].axhline(0, color='black')
+                    axes[0, i].set_title(f"Target {i+1}, OSD = {osd[-1]}")
 
-                #         signal_data = {"signal": signal, "time": segment["time"], "latency": latency, "scale": scale, "target": i+1}
-                #         signals.append(signal_data)
+                    axes[1, i].plot(freq, psd)
+                    axes[1, i].set_xlim(-5, 40)
+                    #axes[1, i].axvline(0, linestyle='--')
+                    axes[1, i].set_title(f"PSD, Integral[0:] = {psd_metric}")
 
-        
-                # for i in range(4):
-                #     print(f"Target error: {target_distances[i]}, Overshoot error: {overshoot_distances[i]}")
+                    axes[2, i].plot(freq, esd)
+                    axes[2, i].set_xlim(-5, 40)
+                    #axes[2, i].axvline(0, linestyle='--')
+                    axes[2, i].set_title(f"ESD, Integral[0:] = {esd_metric}")
 
-                error_metric = c2 * sum(esd_metric_set)
+                    axes[3, i].plot(freq_fft[start_idx:], fft_mag[start_idx:])
+                    axes[3, i].set_xlim(-5, 40)
+                    #axes[3, i].axvline(0, linestyle='--')
+                    axes[3, i].set_title(f"FFT mag^2, Integral(0:] = {esd_fft_metric}")
+
+
+                fig.suptitle(f"Latency {latency}, Scale {scale}, OSD = {sum(osd):.3f}, \
+                PSD = {sum(psd_metric_set):.3f}, ESD = {sum(esd_metric_set):.3f}, \
+                ESD/FFT = {sum(esd_fft_metric_set):.3f}, Target Dist = {sum(target_distances):.3f}")
+                plt.tight_layout()
+                plt.savefig(f"figures/set1_psd/l{latency}s{scale}_psdesdfft_zeroremoved.png")
+                # plt.show()
+                error_metric = sum(esd_metric_set)
                 metric_data.append([latency, scale, error_metric, completion_time])
+                
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'error', 'completion_time'])
     plot_heatmaps(metric_df)
