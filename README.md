@@ -25,3 +25,10 @@ Confirmed that it is general system lag causing issue. Ran program on laptop wit
 - can we get better resolution around this lower freq range?
 - with FFT, the first freq after 0 is around 0.1-0.3 as well. But for FFT, 0 is always greatest, then it reduces.
 - I think using the fft and removing 0 component might be best solution?
+
+### Looking at fft integral metric after removing 0 component only
+- heatmap of using fft only looks pretty wrong... trend is almost opposite of what we should expect
+- for l=0, s=0.2, which should probably be best looking signal, metric total is 7.7k, but then drops to 3.5-4k for s=0.4, 0.6, 0.8, and then down to 2k for s = 1.0. All of these signals look "good" and I would expect them to give similar metrics..
+- Also, why is metric for l=0.3, s=0.2, so high (9k), when signals look smooth and good? The magnitude at the lower frequencies just seem to be so much higher..
+- Also, l=0.75, s=0.2, target 4 makes no sense. Metric is extremely high, ~4k, but signal is very smooth??
+- Okay, so I guess using FFT with 0 removed does NOT seem like it works..

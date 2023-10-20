@@ -85,7 +85,7 @@ def plot_heatmaps(metric_df):
 
     # Adjust subplot layout
     plt.tight_layout()
-    plt.savefig('figures/set1_psd/error_time_heatmaps_fftonly_zeroremoved.png')
+    plt.savefig('figures/set1_psd/zeroremoved/error_time_heatmaps_fftonly_zeroremoved.png')
     # Show the plots
 #    plt.show()
 
@@ -225,8 +225,9 @@ if __name__ == "__main__":
                 ESD/FFT = {sum(esd_fft_metric_set):.3f}, Target Dist = {sum(target_distances):.3f}")
                 plt.tight_layout()
                 plt.savefig(f"figures/set1_psd/l{latency}s{scale}_psdesdfft_zeroremoved.png")
+                plt.close()
                 # plt.show()
-                error_metric = sum(esd_metric_set)
+                error_metric = sum(esd_fft_metric_set)
                 metric_data.append([latency, scale, error_metric, completion_time])
                 
                 
