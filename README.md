@@ -40,3 +40,4 @@ Confirmed that it is general system lag causing issue. Ran program on laptop wit
 - Metric is very high for all 0 latency signals.. may be dependent on the way it gets sampled?
 - Issue could be errors in taking integral? Since resolution is so poor at lower frequencies of importance, could be a lot of error in integral approximation
 - Even so, looking at the peaks of PSD, doesn't really align with what seems like a "good" signal..
+- Conclusion: PSD doesn't seem to represent what I want as far as measuring the oscillations in the signal.. Seemingly good signals will give very high values compared to signals that are clearly 'worse' qualitatively..
