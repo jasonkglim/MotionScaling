@@ -32,3 +32,11 @@ Confirmed that it is general system lag causing issue. Ran program on laptop wit
 - Also, why is metric for l=0.3, s=0.2, so high (9k), when signals look smooth and good? The magnitude at the lower frequencies just seem to be so much higher..
 - Also, l=0.75, s=0.2, target 4 makes no sense. Metric is extremely high, ~4k, but signal is very smooth??
 - Okay, so I guess using FFT with 0 removed does NOT seem like it works..
+
+- Confirmed that FFT is dependent on signal duration. For identical sine functions, signal with twice duration yields approx twice value for integral. (Interestingly for 2x duration signal, peak value is 4x, with 2x resolution, so peak is narrower)
+
+
+### Looking at PSD metric alone
+- Metric is very high for all 0 latency signals.. may be dependent on the way it gets sampled?
+- Issue could be errors in taking integral? Since resolution is so poor at lower frequencies of importance, could be a lot of error in integral approximation
+- Even so, looking at the peaks of PSD, doesn't really align with what seems like a "good" signal..
