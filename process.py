@@ -78,32 +78,38 @@ def plot_heatmaps(metric_df):
     # Plot heatmap for target error
     heatmap_error = metric_df.pivot(
         index='latency', columns='scale', values='target_error')
-    sns.heatmap(heatmap_error, ax=axes[0], cmap="YlGnBu")
+    sns.heatmap(heatmap_error, ax=axes[0], cmap="YlGnBu", annot=True)
     axes[0].set_title('Target Error vs. Latency and Scale')
 
     # Plot the heatmap for 'osd metric'
     heatmap_osd = metric_df.pivot(
         index='latency', columns='scale', values='osd_metric')
-    sns.heatmap(heatmap_osd, ax=axes[1], cmap="YlGnBu")
+    sns.heatmap(heatmap_osd, ax=axes[1], cmap="YlGnBu", annot=True)
     axes[1].set_title('OSD vs. Latency and Scale')
 
-    # Plot the heatmap for 'PSD metric' 
-    heatmap_psd = metric_df.pivot(
-        index='latency', columns='scale', values='psd_metric')
-    sns.heatmap(heatmap_psd, ax=axes[2], cmap="YlGnBu")
-    axes[2].set_title('PSD (fc = 0.1) vs. Latency and Scale')
+    # # Plot the heatmap for 'PSD metric' 
+    # heatmap_psd = metric_df.pivot(
+    #     index='latency', columns='scale', values='psd_metric')
+    # sns.heatmap(heatmap_psd, ax=axes[2], cmap="YlGnBu")
+    # axes[2].set_title('PSD (fc = 0.1) vs. Latency and Scale')
 
     # plot heatmap for speed metric
     heatmap_speed = metric_df.pivot(
         index='latency', columns='scale', values='speed_metric')
-    sns.heatmap(heatmap_speed, ax=axes[3], cmap="YlGnBu")
-    axes[3].set_title('Avg Speed vs. Latency and Scale')
+    sns.heatmap(heatmap_speed, ax=axes[2], cmap="YlGnBu", annot=True)
+    axes[2].set_title('Avg Speed vs. Latency and Scale')
+
+    # Plot heatmap for combined performance metric
+    heatmap_combo = metric_df.pivot(
+        index='latency', columns='scale', values='combo_metric')
+    sns.heatmap(heatmap_combo, ax=axes[3], cmap="YlGnBu", annot=True)
+    axes[3].set_title('Performance vs. Latency and Scale')
 
     # Adjust subplot layout
     plt.tight_layout()
-    plt.savefig('figures/set1_psd/fc0.1/heatmaps_fc0.1.png')
+    plt.savefig('figures/set1_psd/heatmaps_combo_metric.png')
     # Show the plots
-#    plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -119,7 +125,8 @@ if __name__ == "__main__":
 
     # Coefficients for error metric
     c1 = 1
-    c2 = 10
+    c2 = 1
+    c3 = 1
 
     # cutoff frequency
 
@@ -169,7 +176,8 @@ if __name__ == "__main__":
                 # print("Mean and std of track_mouse fn call sample rate: ", tt_fs_mean, tt_fs_std)
                 # print()
 
-                fig, axes = plt.subplots(2, 4, figsize=(24, 12))
+                # # Generate figure for metrics
+                # fig, axes = plt.subplots(2, 4, figsize=(24, 12))
 
                 # Split the data into segments using the click indices
                 for i, click_idx in enumerate(click_indices):
@@ -223,14 +231,15 @@ if __name__ == "__main__":
                     esd_fft_metric = simps(fft_mag[start_idx_fft:], freq_fft[start_idx_fft:])
                     esd_fft_metric_set.append(esd_fft_metric)
 
-                    axes[0, i].plot(time, signal)
-                    axes[0, i].axhline(0, color='black')
-                    axes[0, i].set_title(f"Target {i+1}, OSD = {osd_metric:.3f}, Avg Speed = {speed_metric:.3f}")
+                    # # Plot Metrics for each target signal
+                    # axes[0, i].plot(time, signal)
+                    # axes[0, i].axhline(0, color='black')
+                    # axes[0, i].set_title(f"Target {i+1}, OSD = {osd_metric:.3f}, Avg Speed = {speed_metric:.3f}")
 
-                    axes[1, i].plot(freq, psd, marker='o')
-                    axes[1, i].set_xlim(-5, 40)
-                    #axes[1, i].axvline(0, linestyle='--')
-                    axes[1, i].set_title(f"PSD, Integral(0.1:] = {psd_metric:.3f}")
+                    # axes[1, i].plot(freq, psd, marker='o')
+                    # axes[1, i].set_xlim(-5, 40)
+                    # #axes[1, i].axvline(0, linestyle='--')
+                    # axes[1, i].set_title(f"PSD, Integral(0.1:] = {psd_metric:.3f}")
 
                     # axes[2, i].plot(freq, esd)
                     # axes[2, i].set_xlim(-5, 40)
@@ -243,17 +252,18 @@ if __name__ == "__main__":
                     # axes[3, i].set_title(f"FFT mag^2, Integral(0.5:] = {esd_fft_metric}")
 
 
-                fig.suptitle(f"Latency {latency}, Scale {scale}, OSD = {sum(osd_metric_set):.3f}, \
-                PSD = {sum(psd_metric_set):.3f}, Avg Speed = {np.mean(speed_metric_set):.3f}, Target Dist = {sum(target_distances):.3f}")
-                plt.tight_layout()
-                plt.savefig(f"figures/set1_psd/fc0.1/l{latency}s{scale}_psdesdfft_fc0.1.png")
-                plt.close()
+                # fig.suptitle(f"Latency {latency}, Scale {scale}, OSD = {sum(osd_metric_set):.3f}, \
+                # PSD = {sum(psd_metric_set):.3f}, Avg Speed = {np.mean(speed_metric_set):.3f}, Target Dist = {sum(target_distances):.3f}")
+                # plt.tight_layout()
+                # plt.savefig(f"figures/set1_psd/fc0.1/l{latency}s{scale}_psdesdfft_fc0.1.png")
+                # plt.close()
                 # plt.show()
+
+                combo_metric = -c1*sum(target_distances) - c2*sum(osd_metric_set) + c3*np.mean(speed_metric_set)
+                metric_data.append([latency, scale, sum(target_distances), sum(osd_metric_set), np.mean(speed_metric_set), combo_metric])
                 
-                metric_data.append([latency, scale, sum(target_distances), sum(osd_metric_set), sum(psd_metric_set), np.mean(speed_metric_set)])
                 
-                
-    metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'target_error', 'osd_metric', 'psd_metric', 'speed_metric'])
+    metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'target_error', 'osd_metric', 'speed_metric', 'combo_metric'])
     plot_heatmaps(metric_df)
     
     # print(metric_df)
