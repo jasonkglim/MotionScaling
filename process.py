@@ -264,7 +264,8 @@ if __name__ == "__main__":
                 
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'target_error', 'osd_metric', 'speed_metric', 'combo_metric'])
-    plot_heatmaps(metric_df)
+    metric_df.to_csv('data_files/set1/metric_df.csv')
+    #plot_heatmaps(metric_df)
     
     # print(metric_df)
                     # # Create a 2x2 subplot for each data segment
