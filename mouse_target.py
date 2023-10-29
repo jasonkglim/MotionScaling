@@ -83,7 +83,7 @@ class InstrumentTracker:
 		)
 
 		# Generate targets
-		self.generate_targets()
+		self.generate_targets(100, 10)
 		
 		self.save_data = False
 		self.game_running = True
@@ -131,18 +131,21 @@ class InstrumentTracker:
 			self.root.config(cursor="")
 
 	
-	def generate_targets(self):
-		target_positions = random.sample(range(1, 17), 4)
-	
-		for i, pos in enumerate(target_positions):
-			row, col = divmod(pos - 1, 4)
-			target_x = self.task_space_x + random.uniform(0, 1) * self.task_space_width
-			target_y = self.task_space_y + random.uniform(0, 1) * self.task_space_height
-			shape = self.canvas.create_oval(target_x - 15, target_y - 15, target_x + 15, target_y + 15, fill="red")
-			label = self.canvas.create_text(target_x, target_y, text=str(i + 1), fill="white")
-			self.targets.append((target_x, target_y))
-			self.target_shapes.append(shape)
+	def generate_targets(self, distance, diameter):
+	        
+                self.targets = []
+                self.target_shapes = []
+                num_targets = 6
+                angle_increment = 2 * math.pi / num_targets
 
+                for i in range(num_targets):
+                        angle = i * angle_increment
+                        target_x = self.task_space_x + distance * math.cos(angle)
+                        target_y = self.task_space_y + distance * math.sin(angle)
+                        shape = self.canvas.create_oval(target_x - diameter / 2, target_y - diameter / 2, target_x + diameter / 2, target_y + diameter / 2, fill="red")
+                        label = self.canvas.create_text(target_x, target_y, text=str(i + 1), fill="white")
+                        self.targets.append((target_x, target_y))
+                        self.target_shapes.append(shape)
 
 	
 	def track_mouse(self):
@@ -336,7 +339,7 @@ class InstrumentTracker:
 if __name__ == "__main__":
 
         # Data log folder
-        set_num = 1
+        set_num = 2
         data_folder = f"data_files/set{set_num}"
         if not os.path.exists(data_folder):
                 os.mkdir(data_folder)
