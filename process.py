@@ -115,7 +115,7 @@ def plot_heatmaps(metric_df):
 if __name__ == "__main__":
 
     # List of CSV files to process
-    set_num = 1
+    set_num = 2
     data_folder = f"data_files/set{set_num}"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
@@ -146,6 +146,7 @@ if __name__ == "__main__":
                 latency = float(match.group(1))
                 scale = float(match.group(2))            
                 df = pd.read_csv(file_path)
+                target_df = pd.read_csv(f"target_data_l{latency}s{scale}.csv")
 
                 # Total time to complete trial
                 completion_time = df['time'].iloc[-1] - df['time'].iloc[0]
