@@ -1,0 +1,3 @@
+User: Sarah
+ID conditions: D = 200, W = 40, ID = 2.58
+Notes: User was instructed to prioritize speed over accuracy. However, I observed that she still moved more carefully than I was (in set2-4)

@@ -1,0 +1,3 @@
+User: Jason
+ID conditions: D = 100, W = 40, ID = 3.43
+Notes: Prioritized speed over accuracy. Changed param set to l(0:.8:.2), s(0.6:1.4:0.2)

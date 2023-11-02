@@ -1,0 +1,3 @@
+User: Jason
+ID conditions: D = 100, W = 20, ID = 2.58
+Notes: Using smaller D and W, theoretical ID is same as set3, however IDe range is lower

@@ -1,0 +1,2 @@
+Performed using Fitt's paradigm, serial circular config with 10 targets (9 trials per sequence)
+distance = 400, width = 20, ID = 4.36

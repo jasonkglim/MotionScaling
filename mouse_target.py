@@ -37,7 +37,7 @@ class InstrumentTracker:
                 self.target_shapes = []  # Store target shapes
                 self.current_target = 0  # Track the current target
                 self.target_distance = 200
-                self.target_width = 20
+                self.target_width = 40
 
                 self.trial_running = False
                 self.num_clicks = 0
@@ -133,8 +133,8 @@ class InstrumentTracker:
 
                 for i in range(self.num_targets):
                         angle = initial_angle + direction * (i * np.pi + np.floor(i/2) * angle_increment)
-                        target_x = window_center_x + distance * math.cos(angle)
-                        target_y = window_center_y + distance * math.sin(angle)
+                        target_x = window_center_x + (distance/2) * math.cos(angle)
+                        target_y = window_center_y + (distance/2) * math.sin(angle)
                         shape = self.canvas.create_oval(target_x - diameter / 2, target_y - diameter / 2, target_x + diameter / 2, target_y + diameter / 2, fill="red")
                         # label = self.canvas.create_text(target_x, target_y, text=str(i + 1), fill="white") 
                         self.target_positions.append((target_x, target_y))
@@ -330,14 +330,14 @@ class InstrumentTracker:
 if __name__ == "__main__":
 
         # Data log folder
-        set_num = 2
+        set_num = 5
         data_folder = f"data_files/set{set_num}"
         if not os.path.exists(data_folder):
                 os.mkdir(data_folder)
         
         # generate and shuffle parameter combinations
-        latencies = [round(0.15 * i, 2) for i in range(6)]
-        scales = [round(0.2 * j + 0.2, 1) for j in range(5)]
+        latencies = [round(0.2 * i, 1) for i in range(5)]
+        scales = [round(0.2 * j + 0.4, 1) for j in range(5)]
         print(latencies, scales)
 
         # Create a list of all possible combinations of (x, y)
