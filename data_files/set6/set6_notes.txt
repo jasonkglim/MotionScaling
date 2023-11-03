@@ -1,0 +1,3 @@
+User: Lizzie
+ID conditions: D = 200, W = 40, ID = 2.58
+Notes: Seemed to move pretty carefully as did Sarah. During high delays, seemed to wait for the target to turn green before trying to move to the next target, which I, and I think Sarah, were not doing as much. Meaning there may be an introduced reaction time in this data set.

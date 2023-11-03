@@ -79,6 +79,10 @@ class InstrumentTracker:
 
                 # Generate targets
                 self.generate_targets(self.target_distance, self.target_width)
+                # target_x = 0
+                # target_y = 200
+                # diameter = 100
+                # self.canvas.create_oval(target_x - diameter / 2, target_y - diameter / 2, target_x + diameter / 2, target_y + diameter / 2, fill="yellow")
                 
                 self.save_data = False
                 self.game_running = True
@@ -125,7 +129,7 @@ class InstrumentTracker:
         # Generate target display
         def generate_targets(self, distance, diameter):
 
-                initial_angle = random.uniform(0, 2 * math.pi)
+                initial_angle = 0 #random.uniform(0, 2 * math.pi)
                 direction = random.choice([-1, 1])
                 angle_increment = 2 * math.pi / self.num_targets
                 
@@ -330,7 +334,7 @@ class InstrumentTracker:
 if __name__ == "__main__":
 
         # Data log folder
-        set_num = 5
+        set_num = 6
         data_folder = f"data_files/set{set_num}"
         if not os.path.exists(data_folder):
                 os.mkdir(data_folder)

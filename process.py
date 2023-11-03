@@ -69,6 +69,25 @@ def high_butter(signal, fs, fc, order):
     # Apply the high-pass filter to the signal
     return filtfilt(b, a, signal)
 
+# transforming coordinates
+def transform_2d_coordinate(point, new_x_axis, new_origin):
+    # Convert inputs to NumPy arrays for easy computation
+    point = np.array(point)
+    new_x_axis = np.array(new_x_axis)
+    new_origin = np.array(new_origin)
+
+    # Compute the transformation matrix
+    translated_point = point - new_origin
+    old_x_axis = np.array([1, 0])  # Assuming the old x-axis is the standard unit vector
+    rotation_angle = np.arctan2(new_x_axis[1], new_x_axis[0])
+    rotation_matrix = np.array([[np.cos(rotation_angle), np.sin(rotation_angle)],
+                                [-np.sin(rotation_angle), np.cos(rotation_angle)]])
+
+    # Apply the transformation to the point
+    new_point = np.dot(rotation_matrix, translated_point)
+
+    return new_point
+
 
 
 
@@ -192,6 +211,7 @@ if __name__ == "__main__":
             movement_speeds = []
             target_deviations = [] # deviations of select point to intended target point
             target_distances = []
+            end_points = []
 
             # Calculate mean and standard deviation of sampling rate in motion data file
             dt = df_noclick["time"].diff()
@@ -220,17 +240,24 @@ if __name__ == "__main__":
                 # signal =        
                 start_point = (df['ins_x'][start_idx], df['ins_y'][start_idx])
                 end_point = (df['ins_x'][end_idx], df['ins_y'][end_idx])
+                target_to = (target_df['0'][i+1], target_df['1'][i+1])
+                target_from = (target_df['0'][i], target_df['1'][i])
+                movement_axis = target_to - start_point # defined from motion start point to target center
+                trans_end_point = transform_2d_coordinate(end_point, movement_axis, target_to)
+                
+                end_points.append(trans_end_point)
                 movement_distances.append(math.dist(start_point, end_point))
                 movement_times.append(df['time'][end_idx] - df['time'][start_idx])
                 movement_speeds.append(movement_distances[-1] / movement_times[-1])
+                target_distances.append(math.dist(target_from, target_to))
+                target_deviations.append(math.dist(end_point, target_to))
 
-                target_point = (target_df['0'][i+1], target_df['1'][i+1])
-                target_distances.append(math.dist(target_point, (target_df['0'][i], target_df['1'][i])))
-                target_deviations.append(math.dist(end_point, target_point))
-
+            
             avg_movement_speed = np.mean(np.array(movement_distances) / np.array(movement_times))
             avg_target_deviation = np.mean(target_deviations)
             effective_distance = np.mean(movement_distances)
+            mean_end_point = np.mean(end_points, axis=0)
+            end_point_std = np.sqrt(np.sum(math.dist(
             effective_width = 4.133 * np.std(target_deviations)
             effective_difficulty = math.log2((effective_distance / effective_width) + 1)
             # difficulty = math.log2((np.mean(target_distances) / 40) + 1)
