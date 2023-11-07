@@ -93,45 +93,78 @@ def transform_2d_coordinate(point, new_x_axis, new_origin):
 
 ### Plotting functions
 def plot_heatmaps(metric_df, data_folder):
-    # Create a 1x2 subplot for the heatmaps
-    fig, axes = plt.subplots(1, 5, figsize=(24, 6))
+    # Create a 2x5 subplot for the heatmaps
+    fig, axes = plt.subplots(2, 5, figsize=(32, 12))
 
-    # Plot heatmap for target error
-    heatmap_difficulty = metric_df.pivot(
-        index='latency', columns='scale', values='effective_difficulty')
-    sns.heatmap(heatmap_difficulty, ax=axes[0], cmap="YlGnBu", annot=True)
-    axes[0].set_title('Effective Index of Difficulty vs. Latency and Scale')
+    # Define a function to highlight the maximum value in each row
+    def highlight_max(data):
+        max_index = np.argmax(data, axis=1)
+        for i, max_col in enumerate(max_index):
+            data[i, max_col] = data[i, max_col]
+        return data
 
-    # Plot the heatmap for 'osd metric'
-    heatmap_throughput = metric_df.pivot(
-        index='latency', columns='scale', values='throughput')
-    sns.heatmap(heatmap_throughput, ax=axes[1], cmap="YlGnBu", annot=True)
-    axes[1].set_title('Throughput vs. Latency and Scale')
+    # Function to add red border to maximum value in each row
+    def annotate_extrema(data, ax, extrema_type='max'):
+        extrema_index = np.argmax(data, axis=1) if extrema_type == 'max' else np.argmin(data, axis=1)
+        for i, max_col in enumerate(extrema_index):
+            ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor='red', lw=3))
 
-    # # Plot the heatmap for 'PSD metric' 
-    # heatmap_psd = metric_df.pivot(
-    #     index='latency', columns='scale', values='psd_metric')
-    # sns.heatmap(heatmap_psd, ax=axes[2], cmap="YlGnBu")
-    # axes[2].set_title('PSD (fc = 0.1) vs. Latency and Scale')
-
-    # plot heatmap for speed metric
-    heatmap_deviation = metric_df.pivot(
-        index='latency', columns='scale', values='avg_target_deviation')
-    sns.heatmap(heatmap_deviation, ax=axes[2], cmap="YlGnBu", annot=True)
-    axes[2].set_title('Avg Target Deviation vs. Latency and Scale')
-
-    # Plot heatmap for combined performance metric
+    # Plot heatmap for effective width
     heatmap_width = metric_df.pivot(
         index='latency', columns='scale', values='effective_width')
-    sns.heatmap(heatmap_width, ax=axes[3], cmap="YlGnBu", annot=True)
-    axes[3].set_title('Effective Width vs. Latency and Scale')
+    ax = sns.heatmap(heatmap_width, ax=axes[0, 0], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0, 0].set_title('Effective Width vs. Latency and Scale')
+    annotate_extrema(heatmap_width.values, ax, extrema_type='min')
 
+    # Plot heatmap for effective distance
+    heatmap_distance = metric_df.pivot(
+        index='latency', columns='scale', values='effective_distance')
+    ax = sns.heatmap(heatmap_distance, ax=axes[0, 1], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0, 1].set_title('Effective Distance vs. Latency and Scale')
+    annotate_extrema(heatmap_distance.values, ax)
+
+    # Plot heatmap for index of difficulty
+    heatmap_difficulty = metric_df.pivot(
+        index='latency', columns='scale', values='effective_difficulty')
+    ax = sns.heatmap(heatmap_difficulty, ax=axes[0, 2], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0, 2].set_title('Effective Index of Difficulty vs. Latency and Scale')
+    annotate_extrema(heatmap_difficulty.values, ax)
+
+    # Plot heatmap for average movement time
+    heatmap_MT = metric_df.pivot(
+        index='latency', columns='scale', values='avg_movement_time')
+    ax = sns.heatmap(heatmap_MT, ax=axes[0, 3], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0, 3].set_title('Avg Movement Time vs. Latency and Scale')
+    annotate_extrema(heatmap_MT.values, ax, extrema_type='min')
+
+    # Plot the heatmap for throughput
+    heatmap_throughput = metric_df.pivot(
+        index='latency', columns='scale', values='throughput')
+    ax = sns.heatmap(heatmap_throughput, ax=axes[0, 4], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0, 4].set_title('Throughput vs. Latency and Scale')
+    annotate_extrema(heatmap_throughput.values, ax)
+
+    # Plot heatmap for target error
+    heatmap_deviation = metric_df.pivot(
+        index='latency', columns='scale', values='avg_target_error')
+    ax = sns.heatmap(heatmap_deviation, ax=axes[1, 0], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 0].set_title('Avg Target Error vs. Latency and Scale')
+    annotate_extrema(heatmap_deviation.values, ax, extrema_type='min')
+
+    plt.tight_layout()
+    plt.savefig(f"{data_folder}/heatmap_fitts_metrics.png")
+    plt.show()
+    
+
+    
+# Plot ID vs. MT and regression line for fitt's analysis
+def plot_fitts_regression(metric_df):
     # Plot MT vs. IDe and calculate linear regression line
     x = metric_df['effective_difficulty']
     y = metric_df['avg_movement_time']
     
     # Plotting the data points
-    axes[4].scatter(x, y, color='blue', label='Data Points')
+    plt.scatter(x, y, color='blue', label='Data Points')
 
     # Calculating the linear regression
     slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
@@ -140,30 +173,21 @@ def plot_heatmaps(metric_df, data_folder):
     regression_line = [slope * i + intercept for i in x]
 
     # Plotting the regression line
-    axes[4].plot(x, regression_line, color='red', label='Regression Line')
+    plt.plot(x, regression_line, color='red', label='Regression Line')
 
     # Displaying the slope and intercept values on the plot
     # axes[3].text(0.5, 7, f'Slope: {slope:.2f}\nIntercept: {intercept:.2f}', style='italic', bbox={'facecolor': 'white', 'alpha': 0.5, 'pad': 10})
 
     # Adding labels and title
-    axes[4].set_xlabel('Effective Difficulty')
-    axes[4].set_ylabel('Average Movement Time')
-    axes[4].set_title('Average Movement Time vs. Effective Difficulty with Linear Regression')
-
-    # Adding a legend
-    # axes[3].legend()
-
-    # Adjust subplot layout
-    plt.tight_layout()
-    plt.savefig(f'{data_folder}/heatmaps_fitts.png')
-    # Show the plots
-    plt.show()
+    plt.xlabel('Effective Difficulty')
+    plt.ylabel('Average Movement Time')
+    plt.title('Average Movement Time vs. Effective Difficulty with Linear Regression')
 
 
 if __name__ == "__main__":
 
     # List of CSV files to process
-    set_num = 5
+    set_num = 3
     data_folder = f"data_files/set{set_num}"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
@@ -209,7 +233,7 @@ if __name__ == "__main__":
             movement_distances = []
             movement_times = []
             movement_speeds = []
-            target_deviations = [] # deviations of select point to intended target point
+            target_errors = [] # deviations of select point to intended target point
             target_distances = []
             end_points = []
 
@@ -233,42 +257,40 @@ if __name__ == "__main__":
             # Split the data into segments using the click indices
             for i in range(len(click_indices)-1):
                 
-                # Segment data
+                # Segment data by clicks 
                 start_idx = click_indices[i]
                 end_idx = click_indices[i+1]
                 segment = df.iloc[start_idx:end_idx]
                 # signal =        
-                start_point = (df['ins_x'][start_idx], df['ins_y'][start_idx])
-                end_point = (df['ins_x'][end_idx], df['ins_y'][end_idx])
-                target_to = (target_df['0'][i+1], target_df['1'][i+1])
-                target_from = (target_df['0'][i], target_df['1'][i])
+                start_point = np.array([df['ins_x'][start_idx], df['ins_y'][start_idx]]) 
+                end_point = np.array([df['ins_x'][end_idx], df['ins_y'][end_idx]])
+                target_to = np.array([target_df['0'][i+1], target_df['1'][i+1]])
+                target_from = np.array([target_df['0'][i], target_df['1'][i]])
                 movement_axis = target_to - start_point # defined from motion start point to target center
-                trans_end_point = transform_2d_coordinate(end_point, movement_axis, target_to)
+                trans_end_point = transform_2d_coordinate(end_point, movement_axis, target_to) # transform end points to target frame
                 
                 end_points.append(trans_end_point)
-                movement_distances.append(math.dist(start_point, end_point))
+                movement_distances.append(math.dist(start_point, end_point)) # Euclidean dist between start and end points
                 movement_times.append(df['time'][end_idx] - df['time'][start_idx])
                 movement_speeds.append(movement_distances[-1] / movement_times[-1])
                 target_distances.append(math.dist(target_from, target_to))
-                target_deviations.append(math.dist(end_point, target_to))
+                target_errors.append(math.dist(end_point, target_to))
 
             
             avg_movement_speed = np.mean(np.array(movement_distances) / np.array(movement_times))
-            avg_target_deviation = np.mean(target_deviations)
+            avg_target_error = np.mean(target_errors)
             effective_distance = np.mean(movement_distances)
-            mean_end_point = np.mean(end_points, axis=0)
-            end_point_std = np.sqrt(np.sum(math.dist(
-            effective_width = 4.133 * np.std(target_deviations)
+            end_point_std = np.linalg.norm(np.std(np.array(end_points), axis=0)) # standard deviation of end point scatter
+            effective_width = 4.133 * end_point_std
             effective_difficulty = math.log2((effective_distance / effective_width) + 1)
             # difficulty = math.log2((np.mean(target_distances) / 40) + 1)
             # print('Target Distance = ', np.mean(target_distances), 'Theoretical ID = ', difficulty)
-            
             avg_movement_time = np.mean(movement_times)
             throughput = effective_difficulty / avg_movement_time
             
             
 
-            metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput, avg_target_deviation, avg_movement_speed, effective_width])
+            metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput, avg_target_error, avg_movement_speed, effective_width, effective_distance])
             
                 
             #     time = np.array(segment["time"])
@@ -342,7 +364,7 @@ if __name__ == "__main__":
             # metric_data.append([latency, scale, sum(target_distances), sum(osd_metric_set), np.mean(speed_metric_set), combo_metric])
                 
                 
-    metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time', 'throughput', 'avg_target_deviation', 'avg_movement_speed', 'effective_width'])
+    metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time', 'throughput', 'avg_target_error', 'avg_movement_speed', 'effective_width', 'effective_distance'])
     metric_df.to_csv(f'{data_folder}/metric_df.csv')
     plot_heatmaps(metric_df, data_folder)
     

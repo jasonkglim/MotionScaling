@@ -32,9 +32,9 @@ def transform_2d_coordinate(point, new_x_axis, new_origin, old_y_axis=[0, -1]):
 end_points = np.array([[0, 1], [3, 0], [-1, 0], [0, -1]])
 mean_end_point = np.mean(end_points, axis=0)
 deviations = np.linalg.norm(end_points - mean_end_point, axis=1)
-SD = np.sqrt(np.sum(deviations**2)/3)
+SD = np.sqrt(np.sum(deviations**2)/4)
 print(SD)
-print(math.dist(np.std(end_points, axis=0), [0, 0]))
+print(np.linalg.norm(np.std(end_points, axis=0)))
 
 
 
