@@ -92,7 +92,7 @@ def transform_2d_coordinate(point, new_x_axis, new_origin):
 
 
 ### Plotting functions
-def plot_heatmaps(metric_df, data_folder):
+def plot_all_heatmaps(metric_df, data_folder):
     # Create a 2x5 subplot for the heatmaps
     fig, axes = plt.subplots(2, 5, figsize=(32, 12))
 
@@ -105,9 +105,14 @@ def plot_heatmaps(metric_df, data_folder):
 
     # Function to add red border to maximum value in each row
     def annotate_extrema(data, ax, extrema_type='max'):
-        extrema_index = np.argmax(data, axis=1) if extrema_type == 'max' else np.argmin(data, axis=1)
+        if extrema_type == 'max':
+            extrema_index = np.argmax(data, axis=1)
+            color = 'red'
+        if extrema_type == 'min':
+            extrema_index = np.argmin(data, axis=1)
+            color = 'orange'
         for i, max_col in enumerate(extrema_index):
-            ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor='red', lw=3))
+            ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
 
     # Plot heatmap for effective width
     heatmap_width = metric_df.pivot(
@@ -151,10 +156,84 @@ def plot_heatmaps(metric_df, data_folder):
     axes[1, 0].set_title('Avg Target Error vs. Latency and Scale')
     annotate_extrema(heatmap_deviation.values, ax, extrema_type='min')
 
+    heatmap_osd = metric_df.pivot(
+        index='latency', columns='scale', values='avg_osd')
+    ax = sns.heatmap(heatmap_osd, ax=axes[1, 1], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 1].set_title('Avg OSD vs. Latency and Scale')
+    annotate_extrema(heatmap_osd.values, ax, extrema_type='min')
+
+    # Plot heatmap for total error (target deviation + osd)
+    metric_df['total_error'] = metric_df['avg_osd'] + metric_df['avg_target_error']
+    heatmap_error = metric_df.pivot(
+        index='latency', columns='scale', values='total_error')
+    ax = sns.heatmap(heatmap_error, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 2].set_title('Total Error vs. Latency and Scale')
+    annotate_extrema(heatmap_error.values, ax, extrema_type='min')
+
+    # Plot heatmap for combined performance (movement speed - total error)
+    metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
+    heatmap_combo = metric_df.pivot(
+        index='latency', columns='scale', values='combo')
+    ax = sns.heatmap(heatmap_combo, ax=axes[1, 3], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 3].set_title('Combined Performance vs. Latency and Scale')
+    annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
+
+
     plt.tight_layout()
-    plt.savefig(f"{data_folder}/heatmap_fitts_metrics.png")
+    plt.savefig(f"{data_folder}/heatmap_all_metrics.png")
+
     plt.show()
-    
+
+
+def plot_key_heatmaps(metric_df, data_folder):
+    # Create a 2x5 subplot for the heatmaps
+    fig, axes = plt.subplots(1, 3, figsize=(32, 12))
+
+    # Define a function to highlight the maximum value in each row
+    def highlight_max(data):
+        max_index = np.argmax(data, axis=1)
+        for i, max_col in enumerate(max_index):
+            data[i, max_col] = data[i, max_col]
+        return data
+
+    # Function to add red border to maximum value in each row
+    def annotate_extrema(data, ax, extrema_type='max'):
+        if extrema_type == 'max':
+            extrema_index = np.argmax(data, axis=1)
+            color = 'red'
+        if extrema_type == 'min':
+            extrema_index = np.argmin(data, axis=1)
+            color = 'orange'
+        for i, max_col in enumerate(extrema_index):
+            ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
+
+    # Plot heatmap for average movement time
+    heatmap_MT = metric_df.pivot(
+        index='latency', columns='scale', values='avg_movement_time')
+    ax = sns.heatmap(heatmap_MT, ax=axes[0], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0].set_title('Avg Movement Time vs. Latency and Scale')
+    annotate_extrema(heatmap_MT.values, ax, extrema_type='min')
+
+    # Plot the heatmap for throughput
+    heatmap_throughput = metric_df.pivot(
+        index='latency', columns='scale', values='throughput')
+    ax = sns.heatmap(heatmap_throughput, ax=axes[1], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1].set_title('Throughput vs. Latency and Scale')
+    annotate_extrema(heatmap_throughput.values, ax)
+
+    # Plot heatmap for total error (target deviation + osd)
+    metric_df['total_error'] = metric_df['avg_osd'] + metric_df['avg_target_error']
+    heatmap_error = metric_df.pivot(
+        index='latency', columns='scale', values='total_error')
+    ax = sns.heatmap(heatmap_error, ax=axes[2], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[2].set_title('Total Error vs. Latency and Scale')
+    annotate_extrema(heatmap_error.values, ax, extrema_type='min')
+
+
+    plt.tight_layout()
+    plt.savefig(f"{data_folder}/heatmap_key_metrics.png")
+    plt.show()
+
 
     
 # Plot ID vs. MT and regression line for fitt's analysis
@@ -187,7 +266,7 @@ def plot_fitts_regression(metric_df):
 if __name__ == "__main__":
 
     # List of CSV files to process
-    set_num = 3
+    set_num = 6
     data_folder = f"data_files/set{set_num}"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
@@ -206,8 +285,8 @@ if __name__ == "__main__":
 
     # Loop through each CSV file in data folder
     for filename in os.listdir(data_folder):
-        if count == 1:
-            break
+        # if count == 1:
+        #     break
 
         file_path = os.path.join(data_folder, filename)        
         match = re.match(pattern, filename)
@@ -296,7 +375,9 @@ if __name__ == "__main__":
             
             
 
-            metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput, avg_target_error, avg_movement_speed, effective_width, effective_distance])
+            metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput,
+                                avg_target_error, avg_movement_speed, effective_width, effective_distance,
+                                avg_osd])
             
                 
             #     time = np.array(segment["time"])
@@ -370,9 +451,12 @@ if __name__ == "__main__":
             # metric_data.append([latency, scale, sum(target_distances), sum(osd_metric_set), np.mean(speed_metric_set), combo_metric])
                 
                 
-    metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time', 'throughput', 'avg_target_error', 'avg_movement_speed', 'effective_width', 'effective_distance'])
+    metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time',
+                                                   'throughput', 'avg_target_error', 'avg_movement_speed',
+                                                   'effective_width', 'effective_distance', 'avg_osd'])
     metric_df.to_csv(f'{data_folder}/metric_df.csv')
-    plot_heatmaps(metric_df, data_folder)
+    plot_all_heatmaps(metric_df, data_folder)
+#    plot_key_heatmaps(metric_df, data_folder)
     
     # print(metric_df)
                     # # Create a 2x2 subplot for each data segment
