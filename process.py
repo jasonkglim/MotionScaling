@@ -162,20 +162,27 @@ def plot_all_heatmaps(metric_df, data_folder):
     axes[1, 1].set_title('Avg OSD vs. Latency and Scale')
     annotate_extrema(heatmap_osd.values, ax, extrema_type='min')
 
+    # Plot heatmap for error percentage
+    heatmap_error_rate = metric_df.pivot(
+        index='latency', columns='scale', values='target_error_rate')
+    ax = sns.heatmap(heatmap_error_rate, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 2].set_title('Error Rate vs. Latency and Scale')
+    annotate_extrema(heatmap_error_rate.values, ax, extrema_type='min')
+
     # Plot heatmap for total error (target deviation + osd)
     metric_df['total_error'] = metric_df['avg_osd'] + metric_df['avg_target_error']
     heatmap_error = metric_df.pivot(
         index='latency', columns='scale', values='total_error')
-    ax = sns.heatmap(heatmap_error, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 2].set_title('Total Error vs. Latency and Scale')
+    ax = sns.heatmap(heatmap_error, ax=axes[1, 3], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 3].set_title('Total Error vs. Latency and Scale')
     annotate_extrema(heatmap_error.values, ax, extrema_type='min')
 
     # Plot heatmap for combined performance (movement speed - total error)
     metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
     heatmap_combo = metric_df.pivot(
         index='latency', columns='scale', values='combo')
-    ax = sns.heatmap(heatmap_combo, ax=axes[1, 3], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 3].set_title('Combined Performance vs. Latency and Scale')
+    ax = sns.heatmap(heatmap_combo, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 4].set_title('Combined Performance vs. Latency and Scale')
     annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
 
 
@@ -364,6 +371,7 @@ if __name__ == "__main__":
             avg_movement_speed = np.mean(np.array(movement_distances) / np.array(movement_times))
             avg_target_error = np.mean(target_errors)
             total_target_error = np.sum(target_errors)
+            target_error_rate = (sum(1 for error in target_errors if error > 20) / len(target_errors)) * 100
             effective_distance = np.mean(movement_distances)
             end_point_std = np.linalg.norm(np.std(np.array(end_points), axis=0)) # standard deviation of end point scatter
             effective_width = 4.133 * end_point_std
@@ -377,7 +385,7 @@ if __name__ == "__main__":
 
             metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput,
                                 avg_target_error, avg_movement_speed, effective_width, effective_distance,
-                                avg_osd])
+                                avg_osd, target_error_rate])
             
                 
             #     time = np.array(segment["time"])
@@ -453,7 +461,7 @@ if __name__ == "__main__":
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time',
                                                    'throughput', 'avg_target_error', 'avg_movement_speed',
-                                                   'effective_width', 'effective_distance', 'avg_osd'])
+                                                   'effective_width', 'effective_distance', 'avg_osd', 'target_error_rate'])
     metric_df.to_csv(f'{data_folder}/metric_df.csv')
     plot_all_heatmaps(metric_df, data_folder)
 #    plot_key_heatmaps(metric_df, data_folder)
