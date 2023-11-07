@@ -206,8 +206,8 @@ if __name__ == "__main__":
 
     # Loop through each CSV file in data folder
     for filename in os.listdir(data_folder):
-        # if count == 1:
-        #     break
+        if count == 1:
+            break
 
         file_path = os.path.join(data_folder, filename)        
         match = re.match(pattern, filename)
@@ -236,6 +236,7 @@ if __name__ == "__main__":
             target_errors = [] # deviations of select point to intended target point
             target_distances = []
             end_points = []
+            osd_set = []
 
             # Calculate mean and standard deviation of sampling rate in motion data file
             dt = df_noclick["time"].diff()
@@ -261,14 +262,17 @@ if __name__ == "__main__":
                 start_idx = click_indices[i]
                 end_idx = click_indices[i+1]
                 segment = df.iloc[start_idx:end_idx]
-                # signal =        
+
                 start_point = np.array([df['ins_x'][start_idx], df['ins_y'][start_idx]]) 
                 end_point = np.array([df['ins_x'][end_idx], df['ins_y'][end_idx]])
                 target_to = np.array([target_df['0'][i+1], target_df['1'][i+1]])
                 target_from = np.array([target_df['0'][i], target_df['1'][i]])
                 movement_axis = target_to - start_point # defined from motion start point to target center
                 trans_end_point = transform_2d_coordinate(end_point, movement_axis, target_to) # transform end points to target frame
+                target_distance_signal = np.linalg.norm(segment[['ins_x', 'ins_y']].values - target_to, axis=1)
+                osd = compute_osd(target_distance_signal, np.array(segment['time']))
                 
+                osd_set.append(osd)
                 end_points.append(trans_end_point)
                 movement_distances.append(math.dist(start_point, end_point)) # Euclidean dist between start and end points
                 movement_times.append(df['time'][end_idx] - df['time'][start_idx])
@@ -276,9 +280,11 @@ if __name__ == "__main__":
                 target_distances.append(math.dist(target_from, target_to))
                 target_errors.append(math.dist(end_point, target_to))
 
-            
+            total_osd = np.sum(osd_set)
+            avg_osd = np.mean(osd_set)
             avg_movement_speed = np.mean(np.array(movement_distances) / np.array(movement_times))
             avg_target_error = np.mean(target_errors)
+            total_target_error = np.sum(target_errors)
             effective_distance = np.mean(movement_distances)
             end_point_std = np.linalg.norm(np.std(np.array(end_points), axis=0)) # standard deviation of end point scatter
             effective_width = 4.133 * end_point_std

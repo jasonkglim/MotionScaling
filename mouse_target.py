@@ -334,7 +334,7 @@ class InstrumentTracker:
 if __name__ == "__main__":
 
         # Data log folder
-        set_num = 6
+        set_num = 7
         data_folder = f"data_files/set{set_num}"
         if not os.path.exists(data_folder):
                 os.mkdir(data_folder)
