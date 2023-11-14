@@ -162,12 +162,19 @@ def plot_all_heatmaps(metric_df, data_folder):
     axes[1, 1].set_title('Avg OSD vs. Latency and Scale')
     annotate_extrema(heatmap_osd.values, ax, extrema_type='min')
 
-    # Plot heatmap for error percentage
-    heatmap_error_rate = metric_df.pivot(
-        index='latency', columns='scale', values='target_error_rate')
-    ax = sns.heatmap(heatmap_error_rate, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 2].set_title('Error Rate vs. Latency and Scale')
-    annotate_extrema(heatmap_error_rate.values, ax, extrema_type='min')
+    # # Plot heatmap for error percentage
+    # heatmap_error_rate = metric_df.pivot(
+    #     index='latency', columns='scale', values='target_error_rate')
+    # ax = sns.heatmap(heatmap_error_rate, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[1, 2].set_title('Error Rate vs. Latency and Scale')
+    # annotate_extrema(heatmap_error_rate.values, ax, extrema_type='min')
+
+    # Plot heatmap for translation efficiency
+    heatmap_efficiency = metric_df.pivot(
+        index='latency', columns='scale', values='avg_translation_efficiency')
+    ax = sns.heatmap(heatmap_efficiency, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 2].set_title('Translation Effiency vs. Latency and Scale')
+    annotate_extrema(heatmap_efficiency.values, ax, extrema_type='max')
 
     # Plot heatmap for total error (target deviation + osd)
     metric_df['total_error'] = metric_df['avg_osd'] + metric_df['avg_target_error']
@@ -273,7 +280,7 @@ def plot_fitts_regression(metric_df):
 if __name__ == "__main__":
 
     # List of CSV files to process
-    set_num = 6
+    set_num = 3
     data_folder = f"data_files/set{set_num}"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
@@ -323,6 +330,7 @@ if __name__ == "__main__":
             target_distances = []
             end_points = []
             osd_set = []
+            t_eff_set = []
 
             # Calculate mean and standard deviation of sampling rate in motion data file
             dt = df_noclick["time"].diff()
@@ -348,6 +356,7 @@ if __name__ == "__main__":
                 start_idx = click_indices[i]
                 end_idx = click_indices[i+1]
                 segment = df.iloc[start_idx:end_idx]
+                
 
                 start_point = np.array([df['ins_x'][start_idx], df['ins_y'][start_idx]]) 
                 end_point = np.array([df['ins_x'][end_idx], df['ins_y'][end_idx]])
@@ -357,6 +366,8 @@ if __name__ == "__main__":
                 trans_end_point = transform_2d_coordinate(end_point, movement_axis, target_to) # transform end points to target frame
                 target_distance_signal = np.linalg.norm(segment[['ins_x', 'ins_y']].values - target_to, axis=1)
                 osd = compute_osd(target_distance_signal, np.array(segment['time']))
+                travel_distance = sum(((segment['ins_x'].diff().fillna(0))**2 + (segment['ins_y'].diff().fillna(0))**2)**0.5)
+                translation_efficiency = np.linalg.norm(movement_axis) / travel_distance
                 
                 osd_set.append(osd)
                 end_points.append(trans_end_point)
@@ -365,6 +376,7 @@ if __name__ == "__main__":
                 movement_speeds.append(movement_distances[-1] / movement_times[-1])
                 target_distances.append(math.dist(target_from, target_to))
                 target_errors.append(math.dist(end_point, target_to))
+                t_eff_set.append(translation_efficiency)
 
             total_osd = np.sum(osd_set)
             avg_osd = np.mean(osd_set)
@@ -380,12 +392,13 @@ if __name__ == "__main__":
             # print('Target Distance = ', np.mean(target_distances), 'Theoretical ID = ', difficulty)
             avg_movement_time = np.mean(movement_times)
             throughput = effective_difficulty / avg_movement_time
+            avg_translation_efficiency = np.mean(t_eff_set)
             
             
 
             metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput,
                                 avg_target_error, avg_movement_speed, effective_width, effective_distance,
-                                avg_osd, target_error_rate])
+                                avg_osd, target_error_rate, avg_translation_efficiency])
             
                 
             #     time = np.array(segment["time"])
@@ -461,7 +474,8 @@ if __name__ == "__main__":
                 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time',
                                                    'throughput', 'avg_target_error', 'avg_movement_speed',
-                                                   'effective_width', 'effective_distance', 'avg_osd', 'target_error_rate'])
+                                                   'effective_width', 'effective_distance', 'avg_osd', 'target_error_rate',
+                                                   'avg_translation_efficiency'])
     metric_df.to_csv(f'{data_folder}/metric_df.csv')
     plot_all_heatmaps(metric_df, data_folder)
 #    plot_key_heatmaps(metric_df, data_folder)

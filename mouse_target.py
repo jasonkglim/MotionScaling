@@ -36,11 +36,11 @@ class InstrumentTracker:
                 self.target_hit = [False] * self.num_targets  # Track target hits
                 self.target_shapes = []  # Store target shapes
                 self.current_target = 0  # Track the current target
-                self.target_distance = 200
-                self.target_width = 40
+                self.target_distance = params[2]
+                self.target_width = params[3]
 
                 self.trial_running = False
-                self.num_clicks = 0
+
                 
                 self.mouse_data = deque()
                 self.game_data = []
@@ -87,7 +87,8 @@ class InstrumentTracker:
                 self.save_data = False
                 self.game_running = True
                 self.first_click = False
-
+                self.num_clicks = 0
+                
                 # Hide mouse cursor
                 self.root.config(cursor="none")
                 
@@ -129,7 +130,7 @@ class InstrumentTracker:
         # Generate target display
         def generate_targets(self, distance, diameter):
 
-                initial_angle = 0 #random.uniform(0, 2 * math.pi)
+                initial_angle = random.uniform(0, 2 * math.pi)
                 direction = random.choice([-1, 1])
                 angle_increment = 2 * math.pi / self.num_targets
                 
@@ -262,27 +263,30 @@ class InstrumentTracker:
                 
         
         def dont_save_game_data(self):
-                self.root.destroy()
-                # # Destroy the "Save Data" and "Don't Save" buttons without saving
-                # if self.save_button:
-                #         self.save_button.destroy()
-                #         self.save_button = None
-                # if self.dont_save_button:
-                #         self.dont_save_button.destroy()
-                #         self.dont_save_button = None
                 
-                # # Return to the initial start screen
-                # self.start_button = tk.Button(self.root, text="Start", command=self.start_game)
-                # self.start_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+                self.clear_game_data()
+                
+                # Destroy the "Save Data" and "Don't Save" buttons without saving
+                if self.save_button:
+                        self.save_button.destroy()
+                        self.save_button = None
+                if self.dont_save_button:
+                        self.dont_save_button.destroy()
+                        self.dont_save_button = None
+                
+                # Return to the initial start screen
+                self.start_button = tk.Button(self.root, text="Start", command=self.start_game)
+                self.start_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
         
         def clear_game_data(self):
                 self.instrument = None
                 self.target_positions = []
-                self.target_hit = [False] * 4
-                self.target_distances = [None] * 4
+                self.target_hit = [False] * self.num_targets
+                self.target_distances = [None] * self.num_targets
                 self.target_shapes = []
                 self.current_target = 0
                 self.movement_data = []
+                self.game_data = []
                 self.game_running = False
                 self.game_start_time = None
                 self.game_end_time = None
@@ -333,15 +337,20 @@ class InstrumentTracker:
 
 if __name__ == "__main__":
 
+        user_name = input("Please type your name and then press enter: ")
+
         # Data log folder
-        set_num = 7
-        data_folder = f"data_files/set{set_num}"
+        set_num = 3
+        data_folder = f"data_files/user_{user_name}"
         if not os.path.exists(data_folder):
                 os.mkdir(data_folder)
         
-        # generate and shuffle parameter combinations
+        # Game parameters
         latencies = [round(0.2 * i, 1) for i in range(5)]
-        scales = [round(0.2 * j + 0.4, 1) for j in range(5)]
+        scales = [0.1] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+        target_distance = 200 
+        target_width = 40
+        
         print(latencies, scales)
 
         # Create a list of all possible combinations of (x, y)
@@ -376,7 +385,7 @@ if __name__ == "__main__":
                 
                 print('Game #', i, " Params: ", params[0], params[1])
                 root = tk.Tk()  
-                app = InstrumentTracker(root, params, data_folder)
+                app = InstrumentTracker(root, list(params) + [target_distance, target_width], data_folder)
                 root.mainloop()
 
                 # Check for user input to continue or exit
