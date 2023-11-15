@@ -281,7 +281,7 @@ if __name__ == "__main__":
 
     # List of CSV files to process
     set_num = 3
-    data_folder = f"data_files/set{set_num}"
+    data_folder = f"data_files/user_jason"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
 
@@ -315,7 +315,10 @@ if __name__ == "__main__":
 
             # Find the indices where "click" is True
             click_indices = df.index[df['click']]
-            df_noclick = df[~df["click"]]               
+            df_noclick = df[~df["click"]]
+
+            if len(click_indices) != 10:
+                print(f"Warning! Data for {latency} latency and {scale} scale has {len(click_indices)} clicks!")
 
             target_distances = []
             osd_metric_set = []
@@ -340,14 +343,9 @@ if __name__ == "__main__":
             if fs_std > 5:
                 print("Warning! Sampling Rate std is: ", fs_std, "!")
 
-            # print("Trial: ", latency, scale)
-            # print("Mean and std of motion data sample rate: ", motion_fs_mean, motion_fs_std)
-            # print("Mean and std of motion data sample rate no click: ", noclick_fs_mean, noclick_fs_std)
-            # print("Mean and std of track_mouse fn call sample rate: ", tt_fs_mean, tt_fs_std)
-            # print()
 
-            # # Generate figure for metrics
-            # fig, axes = plt.subplots(2, 4, figsize=(24, 12))
+            # # # Generate figure for metrics
+            # # fig, axes = plt.subplots(2, 4, figsize=(24, 12))
 
             # Split the data into segments using the click indices
             for i in range(len(click_indices)-1):
@@ -399,86 +397,16 @@ if __name__ == "__main__":
             metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput,
                                 avg_target_error, avg_movement_speed, effective_width, effective_distance,
                                 avg_osd, target_error_rate, avg_translation_efficiency])
-            
-                
-            #     time = np.array(segment["time"])
-            #     time = time - time[0]
-            #     normalized_signal = signal / np.max(signal)
-
-            #     # Calculate Overshoot distance
-            #     osd_metric = compute_osd(signal, segment["time"])
-            #     osd_metric_set.append(osd_metric)
-
-            #     # Calculate speed metric
-            #     speed_metric = compute_speed_metric(signal, time)
-            #     speed_metric_set.append(speed_metric)
-
-            #     # Calculate ESD
-            #     fc = 0.5 # Hz
-            #     # order = 5
-            #     # duration = len(signal) / fs_mean
-            #     # padding_duration = 0.1 * duration # seconds
-            #     # num_padding_samples = int(padding_duration * fs_mean) # per side
-            #     # padded_signal = np.pad(signal, (num_padding_samples, num_padding_samples), 'constant')
-            #     # filtered_signal = high_butter(padded_signal, fs_mean, fc, order)
-            #     # filtered_signal = filtered_signal[num_padding_samples:-num_padding_samples]
-
-            #     # Compute spectrums
-            #     freq, esd = compute_esd(normalized_signal, fs_mean)
-            #     freq, psd = compute_psd(normalized_signal, fs_mean)
-            #     freq_fft, signal_fft = compute_fft(normalized_signal, fs_mean)
-            #     fft_mag = np.abs(signal_fft)**2
-
-            #     # Compute Metrics 
-            #     start_freq = 0.01
-            #     start_idx_fft = np.argmax(freq_fft > start_freq)
-            #     start_idx_psd = np.argmax(freq > start_freq)
-            #     esd_metric = simps(esd[start_idx_psd:], freq[start_idx_psd:])
-            #     psd_metric = simps(psd[1:], freq[1:]) * 100
-            #     esd_metric_set.append(esd_metric)
-            #     psd_metric_set.append(psd_metric)
-            #     esd_fft_metric = simps(fft_mag[start_idx_fft:], freq_fft[start_idx_fft:])
-            #     esd_fft_metric_set.append(esd_fft_metric)
-
-            #     # # Plot Metrics for each target signal
-            #     # axes[0, i].plot(time, signal)
-            #     # axes[0, i].axhline(0, color='black')
-            #     # axes[0, i].set_title(f"Target {i+1}, OSD = {osd_metric:.3f}, Avg Speed = {speed_metric:.3f}")
-
-            #     # axes[1, i].plot(freq, psd, marker='o')
-            #     # axes[1, i].set_xlim(-5, 40)
-            #     # #axes[1, i].axvline(0, linestyle='--')
-            #     # axes[1, i].set_title(f"PSD, Integral(0.1:] = {psd_metric:.3f}")
-
-            #     # axes[2, i].plot(freq, esd)
-            #     # axes[2, i].set_xlim(-5, 40)
-            #     # #axes[2, i].axvline(0, linestyle='--')
-            #     # axes[2, i].set_title(f"ESD, Integral(0.5:] = {esd_metric}")
-
-            #     # axes[3, i].plot(freq_fft[start_idx:], fft_mag[start_idx:])
-            #     # axes[3, i].set_xlim(-5, 40)
-            #     # #axes[3, i].axvline(0, linestyle='--')
-            #     # axes[3, i].set_title(f"FFT mag^2, Integral(0.5:] = {esd_fft_metric}")
 
 
-            # # fig.suptitle(f"Latency {latency}, Scale {scale}, OSD = {sum(osd_metric_set):.3f}, \
-            # # PSD = {sum(psd_metric_set):.3f}, Avg Speed = {np.mean(speed_metric_set):.3f}, Target Dist = {sum(target_distances):.3f}")
-            # # plt.tight_layout()
-            # # plt.savefig(f"figures/set1_psd/fc0.1/l{latency}s{scale}_psdesdfft_fc0.1.png")
-            # # plt.close()
-            # # plt.show()
 
-            # combo_metric = -c1*sum(target_distances) - c2*sum(osd_metric_set) + c3*np.mean(speed_metric_set)
-            # metric_data.append([latency, scale, sum(target_distances), sum(osd_metric_set), np.mean(speed_metric_set), combo_metric])
-                
-                
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time',
                                                    'throughput', 'avg_target_error', 'avg_movement_speed',
                                                    'effective_width', 'effective_distance', 'avg_osd', 'target_error_rate',
                                                    'avg_translation_efficiency'])
     metric_df.to_csv(f'{data_folder}/metric_df.csv')
     plot_all_heatmaps(metric_df, data_folder)
-#    plot_key_heatmaps(metric_df, data_folder)
+    # plot_key_heatmaps(metric_df, data_folder)
     
     # print(metric_df)
                     # # Create a 2x2 subplot for each data segment

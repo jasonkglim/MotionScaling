@@ -49,7 +49,7 @@ class InstrumentTracker:
                 self.game_start_time = None  # Timestamp when the game started
                 self.game_end_time = None  # Timestamp when the game ended
 
-                self.data_header = ["time", "ins_x", "ins_y", "click"]
+                self.data_header = ["time", "ins_x", "ins_y", "click", "clutch"]
 
                 # set params
                 self.latency = params[0]
@@ -73,7 +73,8 @@ class InstrumentTracker:
                         self.dont_save_button = None
 
                 # Create clutch label, clutch on by default at start
-                self.clutch_active = True  # Flag to track clutch state
+                self.clutch_active = True  # Flag to track clutch state on master side
+                self.slave_clutch_active = True # Flag to track clutch state on slave side
                 self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 16))
                 self.clutch_status_label.place(x=10, y=10)
 
@@ -121,10 +122,14 @@ class InstrumentTracker:
                 
         def toggle_clutch(self):
                 if self.clutch_active:
+                        self.slave_clutch_active = True
                         self.clutch_status_label.config(text="Clutch: On", fg="green")
+                        self.canvas.itemconfig(self.instrument, fill="blue")
                         self.root.config(cursor="none")
                 else:
+                        self.slave_clutch_active = False
                         self.clutch_status_label.config(text="Clutch: Off", fg="red")
+                        self.canvas.itemconfig(self.instrument, fill="gray")
                         self.root.config(cursor="")
 
         # Generate target display
@@ -160,7 +165,7 @@ class InstrumentTracker:
                 instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
 
                 if self.num_clicks >= 1:
-                        data_point = [time.time() - self.game_start_time] + [instrument_x, instrument_y] + [False]
+                        data_point = [time.time() - self.game_start_time] + [instrument_x, instrument_y] + [False] + [self.slave_clutch_active]
                         self.game_data.append(data_point)
 
                 # Check if the mouse is near the window borders
@@ -208,30 +213,30 @@ class InstrumentTracker:
                 self.num_clicks += 1
                 if self.num_clicks == 1:
                         self.game_start_time = time.time()
-                
-                # Get instrument pos
-                instrument_coords = self.canvas.coords(self.instrument)
-                instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
-                instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
+                if self.num_clicks <= 10:
+                    # Get instrument pos
+                    instrument_coords = self.canvas.coords(self.instrument)
+                    instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
+                    instrument_y = (instrument_coords[1] + instrument_coords[3]) / 2
 
-                # save data point with click True
-                data_point = [time.time() - self.game_start_time] + [instrument_x, instrument_y] + [True]
-                self.game_data.append(data_point)
+                    # save data point with click True
+                    data_point = [time.time() - self.game_start_time] + [instrument_x, instrument_y] + [True] + [self.slave_clutch_active]
+                    self.game_data.append(data_point)
 
-                if self.current_target < self.num_targets-2:
-                        self.target_hit[self.current_target] = True
-                        self.canvas.itemconfig(self.target_shapes[self.current_target], fill="red")
-                        self.canvas.itemconfig(self.target_shapes[self.current_target+1], fill="green") 
-                        self.canvas.itemconfig(self.target_shapes[self.current_target+2], fill="yellow") 
-                        self.current_target += 1
+                    if self.current_target < self.num_targets-2:
+                            self.target_hit[self.current_target] = True
+                            self.canvas.itemconfig(self.target_shapes[self.current_target], fill="red")
+                            self.canvas.itemconfig(self.target_shapes[self.current_target+1], fill="green") 
+                            self.canvas.itemconfig(self.target_shapes[self.current_target+2], fill="yellow") 
+                            self.current_target += 1
 
-                elif self.current_target == self.num_targets-2:
-                        self.canvas.itemconfig(self.target_shapes[self.current_target], fill="red")
-                        self.canvas.itemconfig(self.target_shapes[self.current_target+1], fill="green")
-                        self.current_target += 1
+                    elif self.current_target == self.num_targets-2:
+                            self.canvas.itemconfig(self.target_shapes[self.current_target], fill="red")
+                            self.canvas.itemconfig(self.target_shapes[self.current_target+1], fill="green")
+                            self.current_target += 1
 
-                elif self.current_target == self.num_targets-1:
-                        self.end_game()
+                    elif self.current_target == self.num_targets-1:
+                            self.end_game()
 
         # Game ended after all targets clicked
         def end_game(self):
