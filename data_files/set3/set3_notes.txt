@@ -1,0 +1,4 @@
+User: Jason
+ID conditions: D = 200, W = 40, ID = 2.56
+Notes: Prioritized speed over accuracy. Changed param set to l(0:.8:.2), s(0.6:1.4:0.2)
+adding s = 0.2 and 0.4 to dataset
