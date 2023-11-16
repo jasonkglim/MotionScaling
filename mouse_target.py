@@ -175,11 +175,11 @@ class InstrumentTracker:
                 # Check if the mouse is near the window borders
                 screen_width = self.root.winfo_screenwidth()
                 screen_height = self.root.winfo_screenheight()
-                border_margin = 20  # Margin in pixels to trigger the warning
+                border_margin = 50  # Margin in pixels to trigger the warning
 
-                near_left_border = mouse_x < 5*border_margin
+                near_left_border = mouse_x < border_margin
                 near_right_border = mouse_x > (screen_width - border_margin)
-                near_top_border = mouse_y < 5*border_margin
+                near_top_border = mouse_y < border_margin
                 near_bottom_border = mouse_y > (screen_height - border_margin)
 
                 if near_left_border or near_right_border or near_top_border or near_bottom_border:
