@@ -100,7 +100,7 @@ class InstrumentTracker:
                 # Create the instrument at the same position as the start button
                 start_button_x, start_button_y = self.start_button.winfo_x(), self.start_button.winfo_y()
                 self.instrument = self.canvas.create_oval(
-                        start_button_x - 5, start_button_y - 5, start_button_x + 5, start_button_y + 5, fill="blue"
+                        start_button_x - 50, start_button_y - 50, start_button_x + 50, start_button_y + 50, fill="blue"
                 )
                 self.start_button.destroy()  # Remove the start button
 
@@ -204,8 +204,12 @@ class InstrumentTracker:
                                 self.canvas.move(self.instrument, dx, dy)
                         self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y
 
+                # Update the display immediately
+                self.root.update_idletasks()
+                self.root.update()      
+
                 # Repeat to continuously call function
-                self.after_id = self.root.after(10, self.track_mouse)
+                self.after_id = self.root.after(1, self.track_mouse)
 
                 
         # mouse click binds to send_click_mouse, which calls click_mouse after latency
@@ -361,14 +365,14 @@ if __name__ == "__main__":
         user_name = input("Please type your name and then press enter: ")
 
         # Data log folder
-        set_num = 3
+        # set_num = 3
         data_folder = f"data_files/user_{user_name}"
         if not os.path.exists(data_folder):
                 os.mkdir(data_folder)
         
         # Game parameters
-        latencies = [round(0.2 * i, 1) for i in range(5)]
-        scales = [0.1] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+        latencies = [0] # [round(0.2 * i, 1) for i in range(4)]
+        scales = [1.0] # [0.1, 0.3, 0.5, 0.7, 0.9] #[round(0.2 * j + 0.2, 1) for j in range(5)]
         target_distance = 200 
         target_width = 40
         
