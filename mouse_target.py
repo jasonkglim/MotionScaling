@@ -60,6 +60,10 @@ class InstrumentTracker:
                 self.current_log_file = f"{data_folder}/l{self.latency}s{self.motion_scale}.csv"
                 self.target_data_file = f"{data_folder}/target_data_l{self.latency}s{self.motion_scale}.csv"
 
+                self.fullscreen_state = False
+                self.root.bind("<F11>", self.toggle_fullscreen)
+                self.root.bind("<Escape>", self.end_fullscreen)
+
                 
         
         def start_game(self):
@@ -339,6 +343,18 @@ class InstrumentTracker:
                         # Clear the warning label if it exists
                         self.canvas.delete(self.warning_message)
                         delattr(self, "warning_message")
+
+
+        def toggle_fullscreen(self, event=None):
+                self.fullscreen_state = not self.fullscreen_state  # Just toggling the boolean
+                self.root.attributes("-fullscreen", self.fullscreen_state)
+                return "break"
+
+        def end_fullscreen(self, event=None):
+                self.fullscreen_state = False
+                self.root.attributes("-fullscreen", False)
+                return "break"
+        
 
 if __name__ == "__main__":
 
