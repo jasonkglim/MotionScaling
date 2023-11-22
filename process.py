@@ -185,12 +185,19 @@ def plot_all_heatmaps(metric_df, data_folder):
     annotate_extrema(heatmap_error.values, ax, extrema_type='min')
 
     # Plot heatmap for combined performance (movement speed - total error)
-    metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
-    heatmap_combo = metric_df.pivot(
-        index='latency', columns='scale', values='combo')
-    ax = sns.heatmap(heatmap_combo, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 4].set_title('Combined Performance vs. Latency and Scale')
-    annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
+    # metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
+    # heatmap_combo = metric_df.pivot(
+    #     index='latency', columns='scale', values='combo')
+    # ax = sns.heatmap(heatmap_combo, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[1, 4].set_title('Combined Performance vs. Latency and Scale')
+    # annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
+
+
+    heatmap_clutches = metric_df.pivot(
+        index='latency', columns='scale', values='num_clutches')
+    ax = sns.heatmap(heatmap_clutches, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 4].set_title('Number of Clutches vs. Latency and Scale')
+    
 
 
     plt.tight_layout()
@@ -243,7 +250,7 @@ def plot_key_heatmaps(metric_df, data_folder):
     axes[2].set_title('Total Error vs. Latency and Scale')
     annotate_extrema(heatmap_error.values, ax, extrema_type='min')
 
-
+    plt.title("Data for Lauren")
     plt.tight_layout()
     plt.savefig(f"{data_folder}/heatmap_key_metrics.png")
     plt.show()
@@ -281,7 +288,7 @@ if __name__ == "__main__":
 
     # List of CSV files to process
     set_num = 3
-    data_folder = f"data_files/user_jason"
+    data_folder = f"data_files/user_test"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
 
@@ -391,19 +398,21 @@ if __name__ == "__main__":
             avg_movement_time = np.mean(movement_times)
             throughput = effective_difficulty / avg_movement_time
             avg_translation_efficiency = np.mean(t_eff_set)
+
+            num_clutches = sum((df['clutch']) & (df['clutch'].shift(-1) == False))
             
             
 
             metric_data.append([latency, scale, effective_difficulty, avg_movement_time, throughput,
                                 avg_target_error, avg_movement_speed, effective_width, effective_distance,
-                                avg_osd, target_error_rate, avg_translation_efficiency])
+                                avg_osd, target_error_rate, avg_translation_efficiency, num_clutches])
 
 
 
     metric_df = pd.DataFrame(metric_data, columns=['latency', 'scale', 'effective_difficulty', 'avg_movement_time',
                                                    'throughput', 'avg_target_error', 'avg_movement_speed',
                                                    'effective_width', 'effective_distance', 'avg_osd', 'target_error_rate',
-                                                   'avg_translation_efficiency'])
+                                                   'avg_translation_efficiency', 'num_clutches'])
     metric_df.to_csv(f'{data_folder}/metric_df.csv')
     plot_all_heatmaps(metric_df, data_folder)
     # plot_key_heatmaps(metric_df, data_folder)

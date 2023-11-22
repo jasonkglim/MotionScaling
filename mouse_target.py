@@ -61,7 +61,7 @@ class InstrumentTracker:
                 self.target_data_file = f"{data_folder}/target_data_l{self.latency}s{self.motion_scale}.csv"
 
                 self.fullscreen_state = False
-                self.root.bind("<F11>", self.toggle_fullscreen)
+                self.root.bind("<f>", self.toggle_fullscreen)
                 self.root.bind("<Escape>", self.end_fullscreen)
 
                 
@@ -368,7 +368,7 @@ if __name__ == "__main__":
         
         # Game parameters
         latencies = [round(0.2 * i, 1) for i in range(4)]
-        scales = [0.1] # [0.1, 0.3, 0.5, 0.7, 0.9] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+        scales = [0.2, 0.3, 0.5, 0.7, 0.9] #[round(0.2 * j + 0.2, 1) for j in range(5)]
         target_distance = 200 
         target_width = 40
         
