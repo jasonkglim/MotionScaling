@@ -2,17 +2,8 @@ import numpy as np
 import math
 import pandas as pd
 
-
-# Create a DataFrame with a 'clutch' column
-data = {'clutch': [True, True, False, False, True, True, False, False, True, True]}
-df = pd.DataFrame(data)
-
-# Print the original DataFrame
-print("Original DataFrame:")
-print(df)
-
-# Calculate the number of transitions from True to False using the provided code
-transitions = sum((df['clutch']) & (df['clutch'].shift(-1) == False))
-
-# Print the result
-print("\nNumber of transitions from True to False:", transitions)
+data = [1, 3, 3, 5, 5, 5, 7]
+bins = [0, 2, 4, 6, 8]
+pdf, edges = np.histogram(data, bins=bins, density=True)
+print(pdf)
+print(edges)
