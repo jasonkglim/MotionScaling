@@ -12,6 +12,52 @@ class InstrumentTracker:
         def __init__(self, root, params, data_folder):
                 self.root = root
                 self.root.title("Instrument Tracker")
+
+                # Game parameters
+                latencies = [round(0.25 * i, 2) for i in range(4)]
+                scales = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+                target_distance = 222
+                target_width = 40
+
+
+                # print(latencies, scales)
+
+                # Create a list of all possible combinations of (x, y)
+                game_params = [(x, y) for x in latencies for y in scales]
+
+                game_params.remove((0.0, 0.1))
+                # game_params.remove((0.25, 0.1))
+                # game_params.remove((0.5, 1.0))
+                game_params.remove((0.75, 1.0))
+
+                # Read already performed params from data file
+                param_file = f"{data_folder}/tested_params.csv"
+                data_to_remove = []
+
+                if os.path.exists(param_file):
+                        with open(param_file, 'r') as csv_file:
+                                csv_reader = csv.reader(csv_file)
+                                for row in csv_reader:
+                                        if len(row) >= 2:  # Ensure each row has at least 2 entries
+                                                x_value = float(row[0])
+                                                y_value = float(row[1])
+                                                data_to_remove.append((x_value, y_value))
+
+                                                # Remove the extracted combinations from the list of tuples
+                                                for item in data_to_remove:
+                                                        if item in game_params:
+                                                                game_params.remove(item)
+
+                # Randomize the order of the tuples, keeping (0.0, 0.1) as first trial for training
+                if (0.5, 0.1) in game_params:
+                        game_params.remove((0.5, 0.1))
+                random.shuffle(game_params)
+                game_params.insert(0, (0.5, 0.1))
+                # print(game_params) 
+
+                total_trials = len(game_params)
+                # print("Total trials left: ", total_trials)
+
                 
                 # Set the window size to match the screen's dimensions
                 self.screen_width = root.winfo_screenwidth()
@@ -374,49 +420,6 @@ if __name__ == "__main__":
         if not os.path.exists(data_folder):
                 os.mkdir(data_folder)
         
-        # Game parameters
-        latencies = [round(0.25 * i, 2) for i in range(4)]
-        scales = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
-        target_distance = 222
-        target_width = 40
-        
-        
-        # print(latencies, scales)
-
-        # Create a list of all possible combinations of (x, y)
-        game_params = [(x, y) for x in latencies for y in scales]
-        
-        # game_params.remove((0.25, 0.1))
-        # game_params.remove((0.5, 1.0))
-        # game_params.remove((0.75, 1.0))
-
-        # Read already performed params from data file
-        param_file = f"{data_folder}/tested_params.csv"
-        data_to_remove = []
-
-        if os.path.exists(param_file):
-                with open(param_file, 'r') as csv_file:
-                        csv_reader = csv.reader(csv_file)
-                        for row in csv_reader:
-                                if len(row) >= 2:  # Ensure each row has at least 2 entries
-                                        x_value = float(row[0])
-                                        y_value = float(row[1])
-                                        data_to_remove.append((x_value, y_value))
-
-                                        # Remove the extracted combinations from the list of tuples
-                                        for item in data_to_remove:
-                                                if item in game_params:
-                                                        game_params.remove(item)
-
-        # Randomize the order of the tuples, keeping (0.0, 0.1) as first trial for training
-        if (0.0, 0.1) in game_params:
-                game_params.remove((0.0, 0.1))
-        random.shuffle(game_params)
-        game_params.insert(0, (0.0, 0.1))
-        print(game_params)
-
-        total_trials = len(game_params)
-        # print("Total trials left: ", total_trials)
 
         
         for i, params in enumerate(game_params):
