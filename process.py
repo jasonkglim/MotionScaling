@@ -95,7 +95,9 @@ def transform_2d_coordinate(point, new_x_axis, new_origin):
 def plot_all_heatmaps(metric_df, data_folder):
     # Create a 2x5 subplot for the heatmaps
     fig, axes = plt.subplots(2, 5, figsize=(32, 12))
-
+    username = data_folder.removeprefix('data_files/user_')
+    fig.suptitle(f'Data for {username}')
+    
     # Define a function to highlight the maximum value in each row
     def highlight_max(data):
         max_index = np.argmax(data, axis=1)
@@ -185,23 +187,23 @@ def plot_all_heatmaps(metric_df, data_folder):
     annotate_extrema(heatmap_error.values, ax, extrema_type='min')
 
     # Plot heatmap for combined performance (movement speed - total error)
-    # metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
-    # heatmap_combo = metric_df.pivot(
-    #     index='latency', columns='scale', values='combo')
-    # ax = sns.heatmap(heatmap_combo, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
-    # axes[1, 4].set_title('Combined Performance vs. Latency and Scale')
-    # annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
+    metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
+    heatmap_combo = metric_df.pivot(
+        index='latency', columns='scale', values='combo')
+    ax = sns.heatmap(heatmap_combo, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 4].set_title('Combined Performance vs. Latency and Scale')
+    annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
 
 
-    heatmap_clutches = metric_df.pivot(
-        index='latency', columns='scale', values='num_clutches')
-    ax = sns.heatmap(heatmap_clutches, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 4].set_title('Number of Clutches vs. Latency and Scale')
+    # heatmap_clutches = metric_df.pivot(
+    #     index='latency', columns='scale', values='num_clutches')
+    # ax = sns.heatmap(heatmap_clutches, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[1, 4].set_title('Number of Clutches vs. Latency and Scale')
     
 
 
     plt.tight_layout()
-    plt.savefig(f"{data_folder}/heatmap_all_metrics.png")
+    plt.savefig(f"{data_folder}/heatmap_all_metrics_withcombo.png")
 
     plt.show()
 
@@ -288,7 +290,7 @@ if __name__ == "__main__":
 
     # List of CSV files to process
     set_num = 3
-    data_folder = f"data_files/user_test"
+    data_folder = f"data_files/user_shreya"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
 

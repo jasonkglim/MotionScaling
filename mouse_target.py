@@ -14,11 +14,11 @@ class InstrumentTracker:
                 self.root.title("Instrument Tracker")
                 
                 # Set the window size to match the screen's dimensions
-                screen_width = root.winfo_screenwidth()
-                screen_height = root.winfo_screenheight()
-                self.root.geometry(f"{screen_width}x{screen_height}")
+                self.screen_width = root.winfo_screenwidth()
+                self.screen_height = root.winfo_screenheight()
+                self.root.geometry(f"{self.screen_width}x{self.screen_height}")
                 
-                self.canvas = tk.Canvas(root, width=screen_width, height=screen_height, bg="white")
+                self.canvas = tk.Canvas(root, width=self.screen_width, height=self.screen_height, bg="white")
                 self.canvas.pack()
 
                 # Start button
@@ -64,6 +64,10 @@ class InstrumentTracker:
                 self.root.bind("<f>", self.toggle_fullscreen)
                 self.root.bind("<Escape>", self.end_fullscreen)
 
+                # Switch to fullscreen
+                self.fullscreen_state = True
+                self.root.attributes("-fullscreen", self.fullscreen_state)
+
                 
         
         def start_game(self):
@@ -79,8 +83,10 @@ class InstrumentTracker:
                 # Create clutch label, clutch on by default at start
                 self.clutch_active = True  # Flag to track clutch state on master side
                 self.slave_clutch_active = True # Flag to track clutch state on slave side
-                self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 16))
+                self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 20))
                 self.clutch_status_label.place(x=10, y=10)
+                self.button_center_x = (root.winfo_reqwidth() - self.clutch_status_label.winfo_reqwidth()) // 2
+                self.button_center_y = (root.winfo_reqheight() - self.clutch_status_label.winfo_reqheight()) // 2
 
                 # Generate targets
                 self.generate_targets(self.target_distance, self.target_width)
@@ -127,12 +133,14 @@ class InstrumentTracker:
         def toggle_clutch(self):
                 if self.clutch_active:
                         self.slave_clutch_active = True
-                        self.clutch_status_label.config(text="Clutch: On", fg="green")
+                        self.clutch_status_label.config(text="Clutch: On", fg="green", font=("Arial", 20))
+                        self.clutch_status_label.place(x=10, y=10)
                         self.canvas.itemconfig(self.instrument, fill="blue")
                         self.root.config(cursor="none")
                 else:
                         self.slave_clutch_active = False
-                        self.clutch_status_label.config(text="Clutch: Off", fg="red")
+                        self.clutch_status_label.config(text="Clutch: Off", fg="red", font=("Arial", 80))
+                        self.clutch_status_label.place(x = 1000, y = 200)
                         self.canvas.itemconfig(self.instrument, fill="gray")
                         self.root.config(cursor="")
 
@@ -367,15 +375,20 @@ if __name__ == "__main__":
                 os.mkdir(data_folder)
         
         # Game parameters
-        latencies = [round(0.2 * i, 1) for i in range(4)]
-        scales = [0.2, 0.3, 0.5, 0.7, 0.9] #[round(0.2 * j + 0.2, 1) for j in range(5)]
-        target_distance = 200 
+        latencies = [round(0.25 * i, 2) for i in range(4)]
+        scales = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+        target_distance = 222
         target_width = 40
         
-        print(latencies, scales)
+        
+        # print(latencies, scales)
 
         # Create a list of all possible combinations of (x, y)
         game_params = [(x, y) for x in latencies for y in scales]
+        
+        # game_params.remove((0.25, 0.1))
+        # game_params.remove((0.5, 1.0))
+        # game_params.remove((0.75, 1.0))
 
         # Read already performed params from data file
         param_file = f"{data_folder}/tested_params.csv"
@@ -395,22 +408,31 @@ if __name__ == "__main__":
                                                 if item in game_params:
                                                         game_params.remove(item)
 
-        # Randomize the order of the tuples
+        # Randomize the order of the tuples, keeping (0.0, 0.1) as first trial for training
+        if (0.0, 0.1) in game_params:
+                game_params.remove((0.0, 0.1))
         random.shuffle(game_params)
+        game_params.insert(0, (0.0, 0.1))
+        print(game_params)
 
         total_trials = len(game_params)
-        print("Total trials left: ", total_trials)
+        # print("Total trials left: ", total_trials)
 
         
         for i, params in enumerate(game_params):
+ 
+                print('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
+                print(f'Beginning Trial #{i+1}: Latency = {params[0]}, Scaling Factor = {params[1]}')
+                print(f'Total trials left: {total_trials-i}')
+                # Check for user input to continue or exit
+                user_input = input("Press Enter to continue or 'q' + Enter to quit: ")
+                if user_input.lower() == 'q':
+                        break
                 
-                print('Game #', i, " Params: ", params[0], params[1])
                 root = tk.Tk()  
                 app = InstrumentTracker(root, list(params) + [target_distance, target_width], data_folder)
                 root.mainloop()
 
-                # Check for user input to continue or exit
-                user_input = input("Press Enter to continue to the next game or 'q' + Enter to quit: ")
-                if user_input.lower() == 'q':
-                        break
+        print("\nThanks for playing!! :D")
+                
                 
