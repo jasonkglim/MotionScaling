@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
+from matplotlib import animation
 import distribution_estimation as de
 from scipy.stats import norm
 
@@ -60,11 +60,13 @@ std1 = 0.1
 mean2 = 0.7
 std2 = 0.05
 delay_measurements = bimodal_gauss_signal(mean1, std1, mean2, std2)
-online_histogram = de.OnlineHistogram(bin_mode='auto', window=100)
+bin_mode = 50
+window = 100
+online_histogram = de.OnlineHistogram(bin_mode=bin_mode, window=window)
 
 # Set up plot animation for iterative updating
 fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-fig.suptitle("histogram window: 100, bin mode: auto")
+fig.suptitle(f"histogram window: {window}, bin mode: {bin_mode}")
 # Create the line plot for the signal
 line_signal, = axs[0].plot([], [], marker='o')
 axs[0].set_title("Signal")
@@ -135,18 +137,19 @@ def update_plot(frame):
     return line_signal, step_cdf, bar_pmf
 
 # Create the animation
+# plt.rcParams['animation.convert_path'] = 'usr/bin/convert'
 num_frames = len(delay_measurements)
-ani = FuncAnimation(fig, update_plot, frames=num_frames, interval=50, blit=True, repeat=False)
+ani = animation.FuncAnimation(fig, update_plot, frames=num_frames, interval=50, blit=True, repeat=False)
 
 
 # Show the animation
-# plt.show()
+plt.show()
 
 
-writer = PillowWriter(fps=15,
-                                metadata=dict(artist='Me'),
-                                bitrate=1800)
-ani.save('delay_model_animations/binmode_auto_window_100.gif', writer=writer)
+# writer = PillowWriter(fps=15,
+#                                 metadata=dict(artist='Me'),
+#                                 bitrate=1800)
+ani.save(f'de_animations/binmode_{bin_mode}_window_{window}.gif', writer="pillow", fps=20)
 
 
 # offline_histogram = de.OnlineHistogram(delay_measurements)
