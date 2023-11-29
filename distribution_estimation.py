@@ -47,7 +47,7 @@ class OnlineHistogram:
 
     def __init__(self, data=[], bin_mode='auto', window=None):
         self.data = data
-        self.bin_width = bin_mode
+        self.bin_mode = bin_mode
         if len(data) == 0:
             self.pdf = None
             self.edges = None
@@ -66,8 +66,9 @@ class OnlineHistogram:
             self.data.pop(0)
         #print(len(self.data))
         self.data.append(new_data_point)
-        self.bins = np.arange(min(self.data), max(self.data) + self.bin_width, self.bin_width)                
-        self.pdf, self.edges = np.histogram(self.data, bins=self.bins, density=True)
+        # self.bins = np.arange(min(self.data), max(self.data) + self.bin_width, self.bin_width)   
+        
+        self.pdf, self.edges = np.histogram(self.data, bins=self.bin_mode, density=True)
         return self.pdf, self.edges
 
     def plot_pmf_cdf(self):
