@@ -45,15 +45,19 @@ def calculate_pmf_cdf(pdf, edges):
     
 class OnlineHistogram:
 
-    def __init__(self, data=[]):
+    def __init__(self, data=[], bin_mode='auto', window=None):
         self.data = data
+        self.bin_mode = bin_mode
         if len(data) == 0:
             self.pdf = None
             self.edges = None
         else:
-            self.pdf, self.edges = np.histogram(self.data, bins='auto', density=True)
-            
-        self.max_size = 100000
+            self.pdf, self.edges = np.histogram(self.data, bins=bin_mode, density=True)
+
+        if window is None:
+            self.max_size = np.inf
+        else:
+            self.max_size = window
 
     def update(self, new_data_point):
             
@@ -62,7 +66,7 @@ class OnlineHistogram:
             
         self.data.append(new_data_point)
                 
-        self.pdf, self.edges = np.histogram(self.data, bins='auto', density=True)
+        self.pdf, self.edges = np.histogram(self.data, bins=self.bin_mode, density=True)
         return self.pdf, self.edges
 
     def plot_pmf_cdf(self):

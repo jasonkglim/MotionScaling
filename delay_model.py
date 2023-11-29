@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 import distribution_estimation as de
+from scipy.stats import norm
 
 
 # generates an example signal of noisy measurements of delay following gaussian distribution
@@ -24,6 +25,28 @@ def generate_gauss_signal(duration, sampling_frequency, mean, std_dev):
 
     return time, measurements
 
+def bimodal_gauss_signal(mean1, std1, mean2, std2):
+    # Calculate the number of samples
+    num_samples = 250
+
+    # Generate time values
+    time = np.linspace(0, duration, num_samples, endpoint=False)
+
+    # Generate signal sampled from a Gaussian distribution
+    s1 = np.random.normal(mean1, std1, num_samples)
+    s2 = np.random.normal(mean2, std2, num_samples)
+
+    measurements = np.concatenate((s1, s2))
+    
+    # # Plot the original and delayed signals
+    # plt.plot(time, measurements, label='Delay Measurements')
+    # plt.xlabel('Time')
+    # plt.ylabel('Measured Delay')
+    # plt.legend()
+    # plt.show()
+
+    return measurements
+
 
 # Example usage
 duration = 10  # seconds
@@ -31,13 +54,17 @@ sampling_frequency = 50  # Hz
 mean_delay = 0.5  # seconds
 std_dev_delay = 0.1  # seconds
 
-time, delay_measurements = generate_gauss_signal(duration, sampling_frequency, mean_delay, std_dev_delay)
-
-online_histogram = de.OnlineHistogram()
+#time, delay_measurements = generate_gauss_signal(duration, sampling_frequency, mean_delay, std_dev_delay)
+mean1 = 0.5
+std1 = 0.1
+mean2 = 0.7
+std2 = 0.05
+delay_measurements = bimodal_gauss_signal(mean1, std1, mean2, std2)
+online_histogram = de.OnlineHistogram(bin_mode='auto', window=100)
 
 # Set up plot animation for iterative updating
 fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-
+fig.suptitle("histogram window: 100, bin mode: auto")
 # Create the line plot for the signal
 line_signal, = axs[0].plot([], [], marker='o')
 axs[0].set_title("Signal")
@@ -47,15 +74,26 @@ step_cdf, = axs[1].step([], [], where='post')
 axs[1].set_xlabel('Signal Values')
 axs[1].set_ylabel('Cumulative Probability')
 axs[1].set_title('Empirical CDF')
-axs[1].axhline(0.9)
-axs[1].axvline(0.6318)
+# axs[1].axhline(0.9)
+ref_percentile_line = axs[1].axvline(norm.ppf(0.9, loc=mean1, scale=std1))
+axs[1].set_xlim(0, 1.0)
+axs[1].set_ylim(0, 1.0)
 percentile_line = axs[1].axvline(0, color='r', linestyle='--')
+# Plot reference CDF
+ref_x1 = np.linspace(mean1 - 4*std1, mean1 + 4*std1, 1000)
+ref_x2 = np.linspace(mean2 - 4*std2, mean2 + 4*std2, 1000)
+ref_cdf1 = norm.cdf(ref_x1, loc=mean1, scale=std1)
+ref_cdf2 = norm.cdf(ref_x2, loc=mean2, scale=std2)
+ref_cdf_line, = axs[1].plot(ref_x1, ref_cdf1)
 
 # Create the bar plot for the PDF
 bar_pmf = axs[2].bar([], [], width=[], alpha=0.5)
 axs[2].set_xlabel('Signal Values')
 axs[2].set_ylabel('Probability Density')
 axs[2].set_title('Empirical PDF')
+axs[2].set_xlim(0, 1.0)
+axs[2].set_ylim(0, 1.0)
+
 
 # Set tight layout
 plt.tight_layout()
@@ -78,6 +116,10 @@ def update_plot(frame):
     if frame > 1:
         percentile_line.set_xdata([de.value_at_percentile(cdf, edges, 90)])
 
+    if frame == 250:
+        ref_percentile_line.set_xdata([norm.ppf(0.9, loc=mean2, scale=std2)])
+        ref_cdf_line.set_data(ref_x2, ref_cdf2)
+
     # Update the bar plot for the PMF
     axs[2].clear()
     bar_pmf = axs[2].bar(edges[:-1], pmf, width=bin_width, alpha=0.5)
@@ -86,9 +128,9 @@ def update_plot(frame):
     axs[2].set_title('Empirical PDF')
 
     # Adjust y-axis limits dynamically
-    for ax in axs:
-        ax.relim()
-        ax.autoscale_view()
+    #    for ax in axs:
+    axs[0].relim()
+    axs[0].autoscale_view()
 
     return line_signal, step_cdf, bar_pmf
 
@@ -96,8 +138,16 @@ def update_plot(frame):
 num_frames = len(delay_measurements)
 ani = FuncAnimation(fig, update_plot, frames=num_frames, interval=50, blit=True, repeat=False)
 
+
 # Show the animation
-plt.show()
+# plt.show()
+
+
+writer = PillowWriter(fps=15,
+                                metadata=dict(artist='Me'),
+                                bitrate=1800)
+ani.save('delay_model_animations/binmode_auto_window_100.gif', writer=writer)
+
 
 # offline_histogram = de.OnlineHistogram(delay_measurements)
 # offline_histogram.plot_pmf_cdf()
