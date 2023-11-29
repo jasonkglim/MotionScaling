@@ -60,13 +60,13 @@ std1 = 0.1
 mean2 = 0.7
 std2 = 0.05
 delay_measurements = bimodal_gauss_signal(mean1, std1, mean2, std2)
-bin_mode = 50
+bin_mode = 0.05
 window = 100
 online_histogram = de.OnlineHistogram(bin_mode=bin_mode, window=window)
 
 # Set up plot animation for iterative updating
 fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-fig.suptitle(f"histogram window: {window}, bin mode: {bin_mode}")
+fig.suptitle(f"histogram window: {window}, bin mode: const width {bin_mode}")
 # Create the line plot for the signal
 line_signal, = axs[0].plot([], [], marker='o')
 axs[0].set_title("Signal")
@@ -149,7 +149,7 @@ plt.show()
 # writer = PillowWriter(fps=15,
 #                                 metadata=dict(artist='Me'),
 #                                 bitrate=1800)
-ani.save(f'de_animations/binmode_{bin_mode}_window_{window}.gif', writer="pillow", fps=20)
+ani.save(f'de_animations/binmode_width{bin_mode}_window_{window}.gif', writer="pillow", fps=20)
 
 
 # offline_histogram = de.OnlineHistogram(delay_measurements)

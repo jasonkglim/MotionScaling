@@ -58,15 +58,16 @@ class OnlineHistogram:
             self.max_size = np.inf
         else:
             self.max_size = window
+        #print(bin_mode, window)
 
     def update(self, new_data_point):
             
         if len(self.data) >= self.max_size:
             self.data.pop(0)
-            
+        #print(len(self.data))
         self.data.append(new_data_point)
-        self.bin_mode = np.arange(min(self.data), max(self.data) + self.bin_width, self.bin_width)                
-        self.pdf, self.edges = np.histogram(self.data, bins=self.bin_mode, density=True)
+        self.bins = np.arange(min(self.data), max(self.data) + self.bin_width, self.bin_width)                
+        self.pdf, self.edges = np.histogram(self.data, bins=self.bins, density=True)
         return self.pdf, self.edges
 
     def plot_pmf_cdf(self):
