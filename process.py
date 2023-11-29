@@ -290,7 +290,7 @@ if __name__ == "__main__":
 
     # List of CSV files to process
     set_num = 3
-    data_folder = f"data_files/user_shreya"
+    data_folder = f"data_files/user_test"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
 
@@ -349,8 +349,8 @@ if __name__ == "__main__":
             fs = 1.0 / dt
             fs_mean = np.mean(fs)
             fs_std = np.std(fs)
-            if fs_std > 5:
-                print("Warning! Sampling Rate std is: ", fs_std, "!")
+            #if fs_std > 5:
+            print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
 
 
             # # # Generate figure for metrics
