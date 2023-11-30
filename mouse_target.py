@@ -77,6 +77,7 @@ class InstrumentTracker:
                 self.save_data = False  # Flag to determine whether to save data
                 self.trial_running = False
                 self.warning_rectangles = {}
+                self.practice_mode = False
 
                 # Target info
                 self.target_positions = []
@@ -88,7 +89,7 @@ class InstrumentTracker:
 
                 # data variables
                 self.data_header = ["time", "ins_x", "ins_y", "click", "clutch"]
-                self.mouse_data = deque()
+                self.mouse_queue = deque()
                 self.game_data = []
                 self.movement_data = []
                 self.game_start_time = None  # Timestamp when the game started
@@ -218,19 +219,19 @@ class InstrumentTracker:
                 self.update_warning_rectangle(mouse_x, mouse_y)
 
                 # Add mouse position and time stamp to the queue
-                self.mouse_data.append((mouse_x, mouse_y, time.time(), self.clutch_active))
+                self.mouse_queue.append((mouse_x, mouse_y, time.time(), self.clutch_active))
 
                 # Only update instrument position when latency has been reached 
-                if self.mouse_data[-1][2] - self.mouse_data[0][2] >= self.latency:
-                        cur_mouse_data = self.mouse_data.popleft()
-                        mouse_x = cur_mouse_data[0]
-                        mouse_y = cur_mouse_data[1]
+                if self.mouse_queue[-1][2] - self.mouse_queue[0][2] >= self.latency:
+                        cur_mouse_queue = self.mouse_queue.popleft()
+                        mouse_x = cur_mouse_queue[0]
+                        mouse_y = cur_mouse_queue[1]
 
                         # Calculate instrument movement based on mouse position and scaling
                         dx = (mouse_x - self.prev_mouse_x) * self.motion_scale
                         dy = (mouse_y - self.prev_mouse_y) * self.motion_scale
                         # Update instrument position
-                        if cur_mouse_data[3]:
+                        if cur_mouse_queue[3]:
                                 self.canvas.move(self.instrument, dx, dy)
                         self.prev_mouse_x, self.prev_mouse_y = mouse_x, mouse_y    
 
@@ -247,7 +248,7 @@ class InstrumentTracker:
                 self.num_clicks += 1
                 if self.num_clicks == 1:
                         self.game_start_time = time.time()
-                if self.num_clicks <= 10:
+                if self.num_clicks <= self.num_targets:
                     # Get instrument pos
                     instrument_coords = self.canvas.coords(self.instrument)
                     instrument_x = (instrument_coords[0] + instrument_coords[2]) / 2
@@ -269,8 +270,11 @@ class InstrumentTracker:
                             self.canvas.itemconfig(self.target_shapes[self.current_target+1], fill="green")
                             self.current_target += 1
 
-                    elif self.current_target == self.num_targets-1:
-                            self.end_trial()
+                    elif self.current_target == self.num_targets-1: # Last target clicked
+                            if self.practice_mode:
+                                    self.regen_practice_targets()
+                            else:
+                                    self.end_trial()
 
         ## Game ended after all targets clicked
         def end_trial(self):
@@ -332,7 +336,7 @@ class InstrumentTracker:
                 self.save_data = False
                 self.prev_mouse_x = None
                 self.prev_mouse_y = None
-                self.mouse_data.clear()
+                self.mouse_queue.clear()
 
         ### displays starting screen
         def display_start_screen(self):
@@ -350,8 +354,8 @@ class InstrumentTracker:
                 self.start_button = tk.Button(self.root, text="Start", command=self.start_game)
                 self.start_button.place(x=self.screen_center_x, y=self.screen_center_y)
 
-                self.practice_button = tk.Button(self.root, text="Practice", command=self.start_practice_mode)
-                self.practice_button.place(x=self.screen_center_x, y=self.screen_center_y + 50)
+                self.start_practice_button = tk.Button(self.root, text="Practice", command=self.start_practice_mode)
+                self.start_practice_button.place(x=self.screen_center_x, y=self.screen_center_y + 50)
 
                 self.quit_button = tk.Button(self.root, text="Quit", command=self.root.destroy)
                 self.quit_button.place(x=self.screen_center_x, y=self.screen_center_y + 100)
@@ -487,7 +491,58 @@ class InstrumentTracker:
 
 
         def start_practice_mode(self):
+
+                # Set flags
+                self.practice_mode = True
+                self.num_clicks = 0
+
+                self.canvas.delete("all") # Clear text
                 
+                # (replace this with slider controls)
+                self.latency = 0.0
+                self.motion_scale = 1.0
+
+                # Create border warning rectangles
+                self.warning_rectangles = {}
+                self.warning_rectangles["left"] = self.canvas.create_rectangle(*self.border_coordinates("left"), outline="", fill="white")
+                self.warning_rectangles["right"] = self.canvas.create_rectangle(*self.border_coordinates("right"), outline="", fill="white")
+                self.warning_rectangles["top"] = self.canvas.create_rectangle(*self.border_coordinates("top"), outline="", fill="white")
+                self.warning_rectangles["bottom"] = self.canvas.create_rectangle(*self.border_coordinates("bottom"), outline="", fill="white")
+                self.border_warning = {"left": False, "right": False, "top": False, "bottom": False}
+
+                # Generate targets
+                self.generate_targets(self.target_distance, self.target_width)                
+                
+                # Hide mouse cursor
+                self.root.config(cursor="none")
+                
+                # Create the instrument at the same position as the start button
+                start_button_x, start_button_y = self.screen_center_x, self.screen_center_y
+                self.instrument = self.canvas.create_oval(
+                        start_button_x - 5, start_button_y - 5, start_button_x + 5, start_button_y + 5, fill="blue"
+                )
+                self.start_button.destroy()
+                self.quit_button.destroy()
+                self.start_practice_button.destroy()
+                
+                # Create clutch label, clutch on by default at start
+                self.clutch_active = True  # Flag to track clutch state on master side
+                self.slave_clutch_active = True # Flag to track clutch state on slave side
+                self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 20))
+                self.clutch_status_label.place(x=10, y=10)
+
+                # Button to exit practice mode
+                self.exit_practice_button = tk.Button(self.root, text="Exit Practice Mode", command=self.exit_practice_mode)
+                self.exit_practice_button.place(relx=0.9, rely=0.9)
+                
+                # bind click and clutch events
+                self.canvas.bind("<Button-1>", self.send_click_mouse)
+                self.root.bind("<space>", self.send_toggle_clutch)
+                self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()      
+                
+                # Start tracking
+                self.track_mouse()
+
         
 
 if __name__ == "__main__":
