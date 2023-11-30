@@ -350,8 +350,13 @@ class InstrumentTracker:
                 self.start_button = tk.Button(self.root, text="Start", command=self.start_game)
                 self.start_button.place(x=self.screen_center_x, y=self.screen_center_y)
 
+                self.practice_button = tk.Button(self.root, text="Practice", command=self.start_practice_mode)
+                self.practice_button.place(x=self.screen_center_x, y=self.screen_center_y + 50)
+
                 self.quit_button = tk.Button(self.root, text="Quit", command=self.root.destroy)
-                self.quit_button.place(x=self.screen_center_x, y=self.screen_center_y + 50)
+                self.quit_button.place(x=self.screen_center_x, y=self.screen_center_y + 100)
+
+                
 
                 # Display instructions and trial info
                 self.latency = self.game_params[self.trial_num][0]
