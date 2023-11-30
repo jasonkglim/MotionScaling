@@ -484,6 +484,10 @@ class InstrumentTracker:
                 self.fullscreen_state = False
                 self.root.attributes("-fullscreen", False)
                 return "break"
+
+
+        def start_practice_mode(self):
+                
         
 
 if __name__ == "__main__":
