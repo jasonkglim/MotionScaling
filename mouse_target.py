@@ -32,15 +32,15 @@ class InstrumentTracker:
                 # # self.game_params.remove((0.5, 1.0))
                 self.game_params.remove((0.75, 1.0))
 
-                # Read already performed params from data file
+                # If param file exists, remove already tested params, else create file and add header line
                 param_file = f"{data_folder}/tested_params.csv"
                 data_to_remove = []
 
                 if os.path.exists(param_file):
                         with open(param_file, 'r') as csv_file:
                                 csv_reader = csv.reader(csv_file)
-                                for row in csv_reader:
-                                        if len(row) >= 2:  # Ensure each row has at least 2 entries
+                                for i, row in enumerate(csv_reader):
+                                        if i > 0:  # Skip header row
                                                 x_value = float(row[0])
                                                 y_value = float(row[1])
                                                 data_to_remove.append((x_value, y_value))
@@ -49,6 +49,13 @@ class InstrumentTracker:
                                                 for item in data_to_remove:
                                                         if item in self.game_params:
                                                                 self.game_params.remove(item)
+                else:
+                        print("creating param file")
+                        with open(self.param_file, mode="w", newline="") as file:
+                                writer = csv.writer(file)
+                                header = ['latency', 'scaling_factor', 'target distance', 'target width']
+                                writer.writerow(header)
+                                                                
 
                 # Randomize the order of the tuples, keeping (0.5, 0.1)  as first trial for training
                 if (0.5, 0.1) in self.game_params:
@@ -382,7 +389,7 @@ class InstrumentTracker:
                                 scaling_factor = self.motion_scale
                                 # target_distances = self.target_distances
                                 # total_time = self.game_end_time - self.game_start_time
-                                data_row = [latency, scaling_factor] #+ target_distances + [total_time]
+                                data_row = [latency, scaling_factor, self.target_distance, self.target_width] #+ target_distances + [total_time]
                                 writer.writerow(data_row)
 
                         # Save motion data
@@ -487,6 +494,7 @@ if __name__ == "__main__":
         user_name = input("Please type your name and then press enter: ")
         data_folder = f"data_files/user_{user_name}"
         if not os.path.exists(data_folder):
+                print("creating data folder")
                 os.mkdir(data_folder)
         
 
