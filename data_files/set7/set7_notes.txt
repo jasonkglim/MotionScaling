@@ -1,3 +1,0 @@
-User: Jason
-ID conditions: D = 200, W = 40
-Notes: Playing with param range

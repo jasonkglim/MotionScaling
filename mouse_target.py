@@ -32,15 +32,15 @@ class InstrumentTracker:
                 # # self.game_params.remove((0.5, 1.0))
                 self.game_params.remove((0.75, 1.0))
 
-                # Read already performed params from data file
+                # If param file exists, remove already tested params, else create file and add header line
                 param_file = f"{data_folder}/tested_params.csv"
                 data_to_remove = []
 
                 if os.path.exists(param_file):
                         with open(param_file, 'r') as csv_file:
                                 csv_reader = csv.reader(csv_file)
-                                for row in csv_reader:
-                                        if len(row) >= 2:  # Ensure each row has at least 2 entries
+                                for i, row in enumerate(csv_reader):
+                                        if i > 0:  # Skip header row
                                                 x_value = float(row[0])
                                                 y_value = float(row[1])
                                                 data_to_remove.append((x_value, y_value))
@@ -49,6 +49,13 @@ class InstrumentTracker:
                                                 for item in data_to_remove:
                                                         if item in self.game_params:
                                                                 self.game_params.remove(item)
+                else:
+                        print("creating param file")
+                        with open(self.param_file, mode="w", newline="") as file:
+                                writer = csv.writer(file)
+                                header = ['latency', 'scaling_factor', 'target distance', 'target width']
+                                writer.writerow(header)
+                                                                
 
                 # Randomize the order of the tuples, keeping (0.5, 0.1)  as first trial for training
                 if (0.5, 0.1) in self.game_params:
@@ -63,6 +70,8 @@ class InstrumentTracker:
                 # Setting up main GUI
                 self.screen_width = root.winfo_screenwidth()
                 self.screen_height = root.winfo_screenheight()
+                self.screen_center_x = self.screen_width // 2
+                self.screen_center_y = self.screen_height // 2
                 self.root.geometry(f"{self.screen_width}x{self.screen_height}")
                 self.canvas = tk.Canvas(root, width=self.screen_width, height=self.screen_height, bg="white")
                 self.canvas.pack()
@@ -135,7 +144,7 @@ class InstrumentTracker:
                 self.root.config(cursor="none")
                 
                 # Create the instrument at the same position as the start button
-                start_button_x, start_button_y = self.start_button.winfo_x(), self.start_button.winfo_y()
+                start_button_x, start_button_y = self.screen_center_x, self.screen_center_y
                 self.instrument = self.canvas.create_oval(
                         start_button_x - 5, start_button_y - 5, start_button_x + 5, start_button_y + 5, fill="blue"
                 )
@@ -184,13 +193,11 @@ class InstrumentTracker:
                 initial_angle = random.uniform(0, 2 * math.pi)
                 direction = random.choice([-1, 1])
                 angle_increment = 2 * math.pi / self.num_targets
-                
-                window_center_x, window_center_y = self.start_button.winfo_x(), self.start_button.winfo_y()
 
                 for i in range(self.num_targets):
                         angle = initial_angle + direction * (i * np.pi + np.floor(i/2) * angle_increment)
-                        target_x = window_center_x + (distance/2) * math.cos(angle)
-                        target_y = window_center_y + (distance/2) * math.sin(angle)
+                        target_x = self.screen_center_x + (distance/2) * math.cos(angle)
+                        target_y = self.screen_center_y + (distance/2) * math.sin(angle)
                         shape = self.canvas.create_oval(target_x - diameter / 2, target_y - diameter / 2, target_x + diameter / 2, target_y + diameter / 2, fill="red")
                         # label = self.canvas.create_text(target_x, target_y, text=str(i + 1), fill="white") 
                         self.target_positions.append((target_x, target_y))
@@ -289,10 +296,10 @@ class InstrumentTracker:
                 
                 # Create the "Save Data" and "Don't Save" buttons after the game ends
                 self.save_button = tk.Button(self.root, text="Save Data", command=self.save_game_data)
-                self.save_button.place(relx=0.35, rely=0.9, anchor=tk.CENTER)
+                self.save_button.place(relx=0.35, rely=0.9)
                 
                 self.dont_save_button = tk.Button(self.root, text="Don't Save", command=self.dont_save_game_data)
-                self.dont_save_button.place(relx=0.65, rely=0.9, anchor=tk.CENTER)
+                self.dont_save_button.place(relx=0.65, rely=0.9)
  
         ## Bound to save data button, saves trial data and moves onto next trial
         def save_game_data(self):
@@ -348,10 +355,10 @@ class InstrumentTracker:
                         self.dont_save_button = None
 
                 self.start_button = tk.Button(self.root, text="Start", command=self.start_game)
-                self.start_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+                self.start_button.place(x=self.screen_center_x, y=self.screen_center_y)
 
                 self.quit_button = tk.Button(self.root, text="Quit", command=self.root.destroy)
-                self.quit_button.place(relx=0.5, rely=0.55, anchor=tk.CENTER)
+                self.quit_button.place(x=self.screen_center_x, y=self.screen_center_y + 50)
 
                 # Display instructions and trial info
                 self.latency = self.game_params[self.trial_num][0]
@@ -360,17 +367,17 @@ class InstrumentTracker:
                 trial_message = (f"Trial #{self.trial_num + 1}. "
                                  f"Latency = {self.latency}, Scaling Factor = {self.motion_scale}\n"
                                  f"Number of trials left: {trials_left}")
-                self.canvas.create_text(self.screen_width // 2, 200, text=trial_message, font=("Arial", 16))
+                self.canvas.create_text(self.screen_center_x, 200, text=trial_message, font=("Arial", 16))
                 instructions = ("Instructions:\n"
                                 "- Click \'Start\' to initialize the trial. (You may want to read the read the rest of the instructions before doing so).\n"
                                 "- Your goal is to click the green targets as quickly and accurately as possible. The target you will move to next is indicated in yellow.\n"
                                 "- Please only attempt to click each target once, as each click will automatically trigger the next target.\n"
-                                "- The trial only begins when the first target is clicked (not when \'Start\' is clicked), and you should therefore take your time, get used to the delay and scaling factor, before clicking the center of the first target.\n"
+                                "- The trial only begins when the first target is clicked (not when \'Start\' is clicked). You should therefore take your time, get used to the delay and scaling factor, before clicking the center of the first target.\n"
                                 "- Mouse motion is tracked only while the clutch is active. Press spacebar to toggle the clutch on/off. You are encouraged to do a few practice trials to get used to the clutch mechanism.\n"
-                                "- A red border warning will indicate when the mouse is close to the screen border. You should toggle the clutch and readjust when you see this warning.\n"
+                                "- A red border and warning message will indicate when the mouse is close to the screen border. You should toggle the clutch and readjust when you see this warning.\n"
                                 "- The trial ends automatically after the last target is clicked. Then click \'Save\' to move on to the next trial or \'Dont Save\' to redo the trial.\n"
                                 )
-                self.canvas.create_text(self.screen_width // 2, 800, text=instructions, font=("Arial", 16))
+                self.canvas.create_text(self.screen_center_x, 800, text=instructions, font=("Arial", 16))
                 
 
                 
@@ -382,7 +389,7 @@ class InstrumentTracker:
                                 scaling_factor = self.motion_scale
                                 # target_distances = self.target_distances
                                 # total_time = self.game_end_time - self.game_start_time
-                                data_row = [latency, scaling_factor] #+ target_distances + [total_time]
+                                data_row = [latency, scaling_factor, self.target_distance, self.target_width] #+ target_distances + [total_time]
                                 writer.writerow(data_row)
 
                         # Save motion data
@@ -398,7 +405,7 @@ class InstrumentTracker:
                 if not hasattr(self, "warning_message"):
                         # Create a warning label if it doesn't exist
                         self.warning_message = self.canvas.create_text(
-                                self.canvas.winfo_width() / 2, self.canvas.winfo_height() / 2,
+                                self.canvas.winfo_width() / 2, (self.canvas.winfo_height() / 2)-150,
                                 text="WARNING: Mouse near window border!",
                                 font=("Arial", 16),
                                 fill="red"
@@ -413,7 +420,7 @@ class InstrumentTracker:
 
         def update_warning_rectangle(self, mouse_x, mouse_y):
                 
-                border_margin = 50  # Margin in pixels to trigger the warning
+                border_margin = 100  # Margin in pixels to trigger the warning
                 near_left_border = mouse_x < border_margin
                 near_right_border = mouse_x > (self.screen_width - border_margin)
                 near_top_border = mouse_y < border_margin
@@ -422,30 +429,38 @@ class InstrumentTracker:
                 if near_left_border:
                         self.border_warning["left"] = True
                         self.canvas.itemconfig(self.warning_rectangles["left"], fill="red")
+                        self.display_warning_message()
                 elif self.border_warning["left"]:
                         self.canvas.itemconfig(self.warning_rectangles["left"], fill="white")
                         self.border_warning["left"] = False
+                        self.clear_warning_message()
 
                 if near_right_border:
                         self.border_warning["right"] = True
                         self.canvas.itemconfig(self.warning_rectangles["right"], fill="red")
+                        self.display_warning_message()                        
                 elif self.border_warning["right"]:
                         self.canvas.itemconfig(self.warning_rectangles["right"], fill="white")
                         self.border_warning["right"] = False
+                        self.clear_warning_message()
 
                 if near_top_border:
                         self.border_warning["top"] = True
                         self.canvas.itemconfig(self.warning_rectangles["top"], fill="red")
+                        self.display_warning_message()                        
                 elif self.border_warning["top"]:
                         self.canvas.itemconfig(self.warning_rectangles["top"], fill="white")
                         self.border_warning["top"] = False
+                        self.clear_warning_message()
 
                 if near_bottom_border:
                         self.border_warning["bottom"] = True
                         self.canvas.itemconfig(self.warning_rectangles["bottom"], fill="red")
+                        self.display_warning_message()                        
                 elif self.border_warning["bottom"]:
                         self.canvas.itemconfig(self.warning_rectangles["bottom"], fill="white")
                         self.border_warning["bottom"] = False
+                        self.clear_warning_message()
                         
 
         def border_coordinates(self, key):
@@ -479,6 +494,7 @@ if __name__ == "__main__":
         user_name = input("Please type your name and then press enter: ")
         data_folder = f"data_files/user_{user_name}"
         if not os.path.exists(data_folder):
+                print("creating data folder")
                 os.mkdir(data_folder)
         
 

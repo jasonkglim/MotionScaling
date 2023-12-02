@@ -108,10 +108,10 @@ def plot_all_heatmaps(metric_df, data_folder):
     # Function to add red border to maximum value in each row
     def annotate_extrema(data, ax, extrema_type='max'):
         if extrema_type == 'max':
-            extrema_index = np.argmax(data, axis=1)
+            extrema_index = np.nanargmax(data, axis=1)
             color = 'red'
         if extrema_type == 'min':
-            extrema_index = np.argmin(data, axis=1)
+            extrema_index = np.nanargmin(data, axis=1)
             color = 'orange'
         for i, max_col in enumerate(extrema_index):
             ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
@@ -171,12 +171,12 @@ def plot_all_heatmaps(metric_df, data_folder):
     # axes[1, 2].set_title('Error Rate vs. Latency and Scale')
     # annotate_extrema(heatmap_error_rate.values, ax, extrema_type='min')
 
-    # Plot heatmap for translation efficiency
-    heatmap_efficiency = metric_df.pivot(
-        index='latency', columns='scale', values='avg_translation_efficiency')
-    ax = sns.heatmap(heatmap_efficiency, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 2].set_title('Translation Effiency vs. Latency and Scale')
-    annotate_extrema(heatmap_efficiency.values, ax, extrema_type='max')
+    # # Plot heatmap for translation efficiency
+    # heatmap_efficiency = metric_df.pivot(
+    #     index='latency', columns='scale', values='avg_translation_efficiency')
+    # ax = sns.heatmap(heatmap_efficiency, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[1, 2].set_title('Translation Effiency vs. Latency and Scale')
+    # annotate_extrema(heatmap_efficiency.values, ax, extrema_type='max')
 
     # Plot heatmap for total error (target deviation + osd)
     metric_df['total_error'] = metric_df['avg_osd'] + metric_df['avg_target_error']
@@ -190,15 +190,15 @@ def plot_all_heatmaps(metric_df, data_folder):
     metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
     heatmap_combo = metric_df.pivot(
         index='latency', columns='scale', values='combo')
-    ax = sns.heatmap(heatmap_combo, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 4].set_title('Combined Performance vs. Latency and Scale')
+    ax = sns.heatmap(heatmap_combo, ax=axes[1, 2], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 2].set_title('Combined Performance vs. Latency and Scale')
     annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
 
 
-    # heatmap_clutches = metric_df.pivot(
-    #     index='latency', columns='scale', values='num_clutches')
-    # ax = sns.heatmap(heatmap_clutches, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
-    # axes[1, 4].set_title('Number of Clutches vs. Latency and Scale')
+    heatmap_clutches = metric_df.pivot(
+        index='latency', columns='scale', values='num_clutches')
+    ax = sns.heatmap(heatmap_clutches, ax=axes[1, 4], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 4].set_title('Number of Clutches vs. Latency and Scale')
     
 
 
@@ -290,7 +290,7 @@ if __name__ == "__main__":
 
     # List of CSV files to process
     set_num = 3
-    data_folder = f"data_files/user_test"
+    data_folder = f"data_files/user_lizzie"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
 
@@ -349,8 +349,8 @@ if __name__ == "__main__":
             fs = 1.0 / dt
             fs_mean = np.mean(fs)
             fs_std = np.std(fs)
-            #if fs_std > 5:
-            print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
+            if fs_std > 5:
+                print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
 
 
             # # # Generate figure for metrics
