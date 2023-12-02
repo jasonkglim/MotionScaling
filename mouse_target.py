@@ -550,6 +550,25 @@ class InstrumentTracker:
                 # Start tracking
                 self.track_mouse()
 
+        ## clear current targets, display a message, and regenerate targets        
+        def regen_practice_targets(self):
+                
+                for t in self.target_shapes:
+                        self.canvas.delete(t)
+                self.target_shapes = []
+                self.current_target = 0
+                self.num_clicks = 0
+                msg = self.canvas.create_text(self.screen_center_x, self.screen_center_y, text="Trial Finished. Nice Job!", font=("Arial", 16))
+                time.sleep(2)
+                self.cavnas.delete(msg)
+
+                self.generate_targets()
+
+
+        def exit_practice_mode(self):
+                self.clear_game_data()
+                self.display_start_screen()
+
         
 
 if __name__ == "__main__":
