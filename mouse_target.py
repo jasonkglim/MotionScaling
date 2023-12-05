@@ -184,7 +184,8 @@ class InstrumentTracker:
                 else:
                         self.slave_clutch_active = False
                         self.clutch_status_label.config(text="Clutch: Off", fg="red", font=("Arial", 80))
-                        self.clutch_status_label.place(x = 1000, y = 200)
+                        label_width = self.clutch_status_label.winfo_reqwidth()
+                        self.clutch_status_label.place(x = self.screen_center_x - (label_width // 2), y = 200)
                         self.canvas.itemconfig(self.instrument, fill="gray")
                         self.root.config(cursor="")
                         #self.canvas.tag_lower(self.clutch_status_label)
@@ -390,7 +391,7 @@ class InstrumentTracker:
                                 "- A red border and warning message will indicate when the mouse is close to the screen border. You should toggle the clutch and readjust when you see this warning.\n"
                                 "- The trial ends automatically after the last target is clicked. Then click \'Save\' to move on to the next trial or \'Dont Save\' to redo the trial.\n"
                                 )
-                self.canvas.create_text(self.screen_center_x, 800, text=instructions, font=("Arial", 16))
+                self.canvas.create_text(self.screen_center_x, 800, text=instructions, font=("Arial", 14))
                 
 
                 
@@ -509,9 +510,18 @@ class InstrumentTracker:
 
                 self.canvas.delete("all") # Clear text
                 
-                # (replace this with slider controls)
+                # Create slider controls
                 self.latency = 0.0
                 self.motion_scale = 1.0
+                self.latency_slider = tk.Scale(root, from_=0.0, to=1.0, resolution=0.1, orient=tk.VERTICAL,
+                                               label="Latency", command=self.update_latency)
+                self.latency_slider.place(x=10, y=50)
+                self.latency_slider.set(0.0)
+
+                self.motion_scale_slider = tk.Scale(root, from_=0.05, to=1.0, resolution=0.05, orient=tk.VERTICAL,
+                                                    label="Motion Scale", command=self.update_motion_scale)
+                self.motion_scale_slider.place(x=10, y=200)
+                self.motion_scale_slider.set(1.0)
 
                 # Create border warning rectangles
                 self.warning_rectangles = {}
@@ -542,17 +552,29 @@ class InstrumentTracker:
                 self.clutch_status_label = tk.Label(root, text="Clutch: On", fg="green", font=("Arial", 20))
                 self.clutch_status_label.place(x=10, y=10)
 
-                # Button to exit practice mode
-                self.exit_practice_button = tk.Button(self.root, text="Exit Practice Mode", command=self.exit_practice_mode)
-                self.exit_practice_button.place(relx=0.9, rely=0.9)
+                # Prompt to quit practice mode
+                self.exit_practice_msg = self.canvas.create_text(self.screen_center_x, 200, text="Press \'q\' to exit practice mode", font=("Arial", 16))
+                self.root.bind("<q>", self.exit_practice_mode)
                 
                 # bind click and clutch events
                 self.canvas.bind("<Button-1>", self.send_click_mouse)
                 self.root.bind("<space>", self.send_toggle_clutch)
-                self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()      
+                self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
                 
                 # Start tracking
                 self.track_mouse()
+
+        
+        def update_latency(self, value):
+                self.root.after_cancel(self.after_id)
+                self.mouse_queue.clear()
+                self.latency = float(value)
+                self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
+                self.track_mouse()
+                
+
+        def update_motion_scale(self, value):
+                self.motion_scale = float(value)
 
         ## clear current targets, display a message, and regenerate targets        
         def regen_practice_targets(self):
@@ -564,30 +586,33 @@ class InstrumentTracker:
                 self.current_target = 0
                 self.num_clicks = 0
                 msg = self.canvas.create_text(self.screen_center_x, self.screen_center_y, text="Trial Finished. Nice Job!", font=("Arial", 16))
-                time.sleep(2)
+                self.root.after(1000, self.clear_msg_regen, msg)
+
+        def clear_msg_regen(self, msg):
                 self.canvas.delete(msg)
                 self.generate_targets(self.target_distance, self.target_width)
 
 
-        def exit_practice_mode(self):
+        def exit_practice_mode(self, event):
 
                 self.practice_mode = False
                 self.clutch_active = False
                 self.clutch_status_label.destroy()
-                self.exit_practice_button.destroy()
+                self.latency_slider.destroy()
+                self.motion_scale_slider.destroy()
                 
                 # Show the mouse cursor again
                 self.root.config(cursor="")
 
                 # Unbind buttons and stop track_mouse
                 self.canvas.unbind("<Button-1>")
+                self.root.unbind("<q>")
                 self.root.unbind("<space>")
                 self.root.after_cancel(self.after_id)
 
                 self.clear_game_data()
                 self.display_start_screen()
 
-        
 
 if __name__ == "__main__":
 
