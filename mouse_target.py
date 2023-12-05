@@ -151,6 +151,7 @@ class InstrumentTracker:
                 )
                 self.start_button.destroy()
                 self.quit_button.destroy()
+                self.start_practice_button.destroy()
                 
                 # Create clutch label, clutch on by default at start
                 self.clutch_active = True  # Flag to track clutch state on master side
@@ -367,6 +368,9 @@ class InstrumentTracker:
                 self.quit_button = tk.Button(self.root, text="Quit", command=self.root.destroy)
                 self.quit_button.place(x=self.screen_center_x, y=self.screen_center_y + 100)
 
+                if hasattr(self, 'clutch_status_label'):
+                        self.clutch_status_label.destroy()
+
                 
 
                 # Display instructions and trial info
@@ -555,17 +559,31 @@ class InstrumentTracker:
                 
                 for t in self.target_shapes:
                         self.canvas.delete(t)
+                self.target_positions = []
                 self.target_shapes = []
                 self.current_target = 0
                 self.num_clicks = 0
                 msg = self.canvas.create_text(self.screen_center_x, self.screen_center_y, text="Trial Finished. Nice Job!", font=("Arial", 16))
                 time.sleep(2)
-                self.cavnas.delete(msg)
-
-                self.generate_targets()
+                self.canvas.delete(msg)
+                self.generate_targets(self.target_distance, self.target_width)
 
 
         def exit_practice_mode(self):
+
+                self.practice_mode = False
+                self.clutch_active = False
+                self.clutch_status_label.destroy()
+                self.exit_practice_button.destroy()
+                
+                # Show the mouse cursor again
+                self.root.config(cursor="")
+
+                # Unbind buttons and stop track_mouse
+                self.canvas.unbind("<Button-1>")
+                self.root.unbind("<space>")
+                self.root.after_cancel(self.after_id)
+
                 self.clear_game_data()
                 self.display_start_screen()
 
