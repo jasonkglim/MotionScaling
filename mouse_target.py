@@ -19,7 +19,7 @@ class InstrumentTracker:
 
                 # Setting up game parameters
                 latencies = [round(0.25 * i, 2) for i in range(4)]
-                scales = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+                scales = [1.0] #[0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
                 self.target_distance = 222
                 self.target_width = 40
 
@@ -27,10 +27,10 @@ class InstrumentTracker:
                 self.game_params = [(x, y) for x in latencies for y in scales]
 
                 # Removing unnecessary param combos
-                self.game_params.remove((0.0, 0.1))
-                # # self.game_params.remove((0.25, 0.1))
-                # # self.game_params.remove((0.5, 1.0))
-                self.game_params.remove((0.75, 1.0))
+                # self.game_params.remove((0.0, 0.1)) 
+                # # # self.game_params.remove((0.25, 0.1))
+                # # # self.game_params.remove((0.5, 1.0))
+                # self.game_params.remove((0.75, 1.0))
 
                 # If param file exists, remove already tested params, else create file and add header line
                 param_file = f"{data_folder}/tested_params.csv"
@@ -57,12 +57,8 @@ class InstrumentTracker:
                                 writer.writerow(header)
                                                                 
 
-                # Randomize the order of the tuples, keeping (0.5, 0.1)  as first trial for training
-                if (0.5, 0.1) in self.game_params:
-                        self.game_params.remove((0.5, 0.1))
+                # Randomize order of param combo
                 random.shuffle(self.game_params)
-                self.game_params.insert(0, (0.5, 0.1))
-                # print(self.game_params) 
 
                 self.total_trials = len(self.game_params)
                 # print("Total trials left: ", total_trials)
@@ -185,7 +181,7 @@ class InstrumentTracker:
                         self.slave_clutch_active = False
                         self.clutch_status_label.config(text="Clutch: Off", fg="red", font=("Arial", 80))
                         label_width = self.clutch_status_label.winfo_reqwidth()
-                        self.clutch_status_label.place(x = self.screen_center_x - (label_width // 2), y = 200)
+                        self.clutch_status_label.place(x = self.screen_center_x - (label_width // 2), y = 250)
                         self.canvas.itemconfig(self.instrument, fill="gray")
                         self.root.config(cursor="")
                         #self.canvas.tag_lower(self.clutch_status_label)
@@ -281,7 +277,7 @@ class InstrumentTracker:
 
                     elif self.current_target == self.num_targets-1: # Last target clicked
                             if self.practice_mode:
-                                    self.regen_practice_targets()
+                                    self.clear_practice_targets()
                             else:
                                     self.end_trial()
 
@@ -577,8 +573,11 @@ class InstrumentTracker:
                 self.motion_scale = float(value)
 
         ## clear current targets, display a message, and regenerate targets        
-        def regen_practice_targets(self):
-                
+        def clear_practice_targets(self):
+                self.root.after_cancel(self.after_id)
+                self.mouse_queue.clear()
+                self.canvas.unbind("<Button-1>")                
+                self.canvas.delete(self.instrument)
                 for t in self.target_shapes:
                         self.canvas.delete(t)
                 self.target_positions = []
@@ -586,11 +585,19 @@ class InstrumentTracker:
                 self.current_target = 0
                 self.num_clicks = 0
                 msg = self.canvas.create_text(self.screen_center_x, self.screen_center_y, text="Trial Finished. Nice Job!", font=("Arial", 16))
-                self.root.after(1000, self.clear_msg_regen, msg)
+                self.root.after(1000, self.regen_practice_targets, msg)
 
-        def clear_msg_regen(self, msg):
+        def regen_practice_targets(self, msg):
                 self.canvas.delete(msg)
                 self.generate_targets(self.target_distance, self.target_width)
+                # Create the instrument at the same position as the start button
+                start_button_x, start_button_y = self.screen_center_x, self.screen_center_y
+                self.instrument = self.canvas.create_oval(
+                        start_button_x - 5, start_button_y - 5, start_button_x + 5, start_button_y + 5, fill="blue"
+                )
+                self.canvas.bind("<Button-1>", self.send_click_mouse)
+                self.prev_mouse_x, self.prev_mouse_y = self.root.winfo_pointerx(), self.root.winfo_pointery()
+                self.track_mouse()
 
 
         def exit_practice_mode(self, event):
