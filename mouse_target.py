@@ -55,12 +55,20 @@ class InstrumentTracker:
                                 writer = csv.writer(file)
                                 header = ['latency', 'scaling_factor', 'target distance', 'target width']
                                 writer.writerow(header)
-                                                                
 
+                # If all params have been tested already
+                if not self.game_params:
+                        print("All parameters have been tested already!")
+                        self.root.quit()
+                        self.root.destroy()
+                        return
+                        
+                        
                 # Randomize order of param combo
                 random.shuffle(self.game_params)
 
                 self.total_trials = len(self.game_params)
+                self.trial_num = 0
                 # print("Total trials left: ", total_trials)
                 
                 # Setting up main GUI
@@ -549,7 +557,7 @@ class InstrumentTracker:
                 self.clutch_status_label.place(x=10, y=10)
 
                 # Prompt to quit practice mode
-                self.exit_practice_msg = self.canvas.create_text(self.screen_center_x, 200, text="Press \'q\' to exit practice mode", font=("Arial", 16))
+                self.exit_practice_msg = self.canvas.create_text(self.screen_center_x, 60, text="Press \'q\' to exit practice mode", font=("Arial", 16))
                 self.root.bind("<q>", self.exit_practice_mode)
                 
                 # bind click and clutch events
@@ -634,21 +642,6 @@ if __name__ == "__main__":
         root = tk.Tk()  
         app = InstrumentTracker(root, data_folder)
         root.mainloop()
-                
-        
-        # for i, params in enumerate(game_params):
- 
-        #         print('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n')
-        #         print(f'Beginning Trial #{i+1}: Latency = {params[0]}, Scaling Factor = {params[1]}')
-        #         print(f'Total trials left: {total_trials-i}')
-        #         # Check for user input to continue or exit
-        #         user_input = input("Press Enter to continue or 'q' + Enter to quit: ")
-        #         if user_input.lower() == 'q':
-        #                 break
-                
-        #         root = tk.Tk()  
-        #         app = InstrumentTracker(root, list(params) + [target_distance, target_width], data_folder)
-        #         root.mainloop()
 
         print("\nThanks for playing!! :D")
                 
