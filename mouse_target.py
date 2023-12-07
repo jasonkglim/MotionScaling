@@ -19,7 +19,7 @@ class InstrumentTracker:
 
                 # Setting up game parameters
                 latencies = [round(0.25 * i, 2) for i in range(4)]
-                scales = [1.0] #[0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+                scales = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
                 self.target_distance = 222
                 self.target_width = 40
 

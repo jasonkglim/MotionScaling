@@ -290,7 +290,7 @@ if __name__ == "__main__":
 
     # List of CSV files to process
     set_num = 3
-    data_folder = f"data_files/user_test3"
+    data_folder = f"data_files/user_sujaan"
     pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
     count = 0
 
