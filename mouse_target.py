@@ -27,7 +27,7 @@ class InstrumentTracker:
                 self.game_params = [(x, y) for x in latencies for y in scales]
 
                 # Removing unnecessary param combos
-                # self.game_params.remove((0.0, 0.1)) 
+                # self.game_params.remove((0.0, 0.1))
                 # # # self.game_params.remove((0.25, 0.1))
                 # # # self.game_params.remove((0.5, 1.0))
                 # self.game_params.remove((0.75, 1.0))
@@ -388,7 +388,8 @@ class InstrumentTracker:
                 self.canvas.create_text(self.screen_center_x, 200, text=trial_message, font=("Arial", 16))
                 instructions = ("Instructions:\n"
                                 "- Click \'Start\' to initialize the trial. (You may want to read the read the rest of the instructions before doing so).\n"
-                                "- Your goal is to click the green targets as quickly and accurately as possible. The target you will move to next is indicated in yellow.\n"
+                                "- Each trial consists of 10 targets that you will try to click as quickly as possible. The simulated latency and motion scaling factor will change for each trial.\n"
+                                "- Your goal is to click the targets as quickly and accurately as possible. Green indicates the target you are currently trying to hit, and the subsequent target is indicated in yellow.\n"
                                 "- Please only attempt to click each target once, as each click will automatically trigger the next target.\n"
                                 "- The trial only begins when the first target is clicked (not when \'Start\' is clicked). You should therefore take your time, get used to the delay and scaling factor, before clicking the center of the first target.\n"
                                 "- Mouse motion is tracked only while the clutch is active. Press spacebar to toggle the clutch on/off. You are encouraged to do a few practice trials to get used to the clutch mechanism.\n"

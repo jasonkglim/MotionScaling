@@ -10,6 +10,8 @@ from scipy.signal import butter, filtfilt, welch
 from scipy.fft import fft, fftfreq, fftshift
 import math
 from scipy import stats
+import csv
+import sys
 
 ### Functions for calculating metrics
 
@@ -289,9 +291,12 @@ def plot_fitts_regression(metric_df):
 if __name__ == "__main__":
 
     # List of CSV files to process
-    set_num = 3
-    data_folder = f"data_files/user_sujaan"
-    pattern = r'l(\d+\.\d+)s(\d+\.\d+)\.csv'
+    user = input("enter user: ")
+    data_folder = f"data_files/user_{user}"
+    if not os.path.exists(data_folder):
+        print("Data folder doesn't exist")
+        sys.exit()
+    pattern = r'l(\d+(?:\.\d+)?)s(\d+(?:\.\d+)?)\.csv'
     count = 0
 
     # main data frame for performance metrics across trials
@@ -313,14 +318,15 @@ if __name__ == "__main__":
 
         file_path = os.path.join(data_folder, filename)        
         match = re.match(pattern, filename)
+        #print(match)
         if match:
 
             count += 1
-
+            #print(match.group(1), match.group(2))
             latency = float(match.group(1))
             scale = float(match.group(2))            
             df = pd.read_csv(file_path)
-            target_df = pd.read_csv(f"{data_folder}/target_data_l{latency}s{scale}.csv")
+            target_df = pd.read_csv(f"{data_folder}/target_data_l{match.group(1)}s{match.group(2)}.csv")
 
             # Find the indices where "click" is True
             click_indices = df.index[df['click']]
@@ -349,8 +355,8 @@ if __name__ == "__main__":
             fs = 1.0 / dt
             fs_mean = np.mean(fs)
             fs_std = np.std(fs)
-            #if fs_std > 5:
-            print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
+            if fs_std > 5:
+                print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
 
 
             # # # Generate figure for metrics
@@ -419,114 +425,17 @@ if __name__ == "__main__":
     plot_all_heatmaps(metric_df, data_folder)
     # plot_key_heatmaps(metric_df, data_folder)
     
-    # print(metric_df)
-                    # # Create a 2x2 subplot for each data segment
-                    # fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-                    # fig.suptitle(csv_file)
-
-                    # # Plot d1, d2, d3, and d4 along with their derivatives for each segment
-                    # for i, segment in enumerate(data_segments):
-                    #     row, col = i // 2, i % 2
-                    #     ax = axes[row, col]
-                    #     cur_d = 'd{0}'.format(i+1)
-                    #     ax.plot(segment['time'], segment[cur_d], label=cur_d)
-
-    # Calculate and plot derivatives
-
-            
-    #         smoothed_dist_derivative = dist_derivative.rolling(window=5).mean().fillna(0)
-
-    #         ax.plot(segment['time'], smoothed_dist_derivative, label='{0} Derivative'.format(cur_d))
-    #         area = 
-    #         print("Area for {0}, Target {1}: {2}".format(csv_file, i+1, area))
-            
-    #         ax.set_title(f"Segment {i+1}")
-    #         ax.legend()
-
-    #     plt.tight_layout()
-    #     plt.savefig("{0}_distance_plots.png".format(csv_file))
-    #     plt.show()
-
-    #    print("Error metric for {0} latency and {1} scaling factor: {2}".format(
-        
-
-    ## Old code for generating surface plots
-    # Read the CSV file into a pandas DataFrame
-    # df = pd.read_csv('game_data.csv', header=None, names=['latency', 'scale', 'd1', 'd2', 'd3', 'd4', 'time'])
-
-    # # Compute the error for each trial
-    # df['error'] = df['d1'] + df['d2'] + df['d3'] + df['d4']
-
-    # # Create the first 3D surface plot for error
-    # fig = plt.figure()
-    # ax1 = fig.add_subplot(121, projection='3d')
-    # ax1.set_xlabel('Latency')
-    # ax1.set_ylabel('Scale')
-    # ax1.set_zlabel('Error')
-    # ax1.set_title('Error vs. Latency and Scale')
-    # ax1.plot_trisurf(df['latency'], df['scale'], df['error'], cmap='viridis')
-
-    # # Create the second 3D surface plot for time
-    # ax2 = fig.add_subplot(122, projection='3d')
-    # ax2.set_xlabel('Latency')
-    # ax2.set_ylabel('Scale')
-    # ax2.set_zlabel('Time')
-    # ax2.set_title('Time vs. Latency and Scale')
-    # ax2.plot_trisurf(df['latency'], df['scale'], df['time'], cmap='viridis')
-
-    # # Show the plots
-    # plt.show()
-
-    # # Create a figure with two subplots
-    # fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-
-    # # Plot the error heatmap
-    # ax1 = axes[0]
-    # ax1.set_title('Error Heatmap')
-    # im1 = ax1.imshow(df.pivot('latency', 'scale', 'error'), cmap='viridis', extent=[df['latency'].min(), df['latency'].max(), df['scale'].min(), df['scale'].max()])
-    # ax1.set_xlabel('Latency')
-    # ax1.set_ylabel('Scale')
-    # fig.colorbar(im1, ax=ax1, label='Error')
-
-    # # Plot the time heatmap
-    # ax2 = axes[1]
-    # ax2.set_title('Time Heatmap')
-    # im2 = ax2.imshow(df.pivot('latency', 'scale', 'time'), cmap='viridis', extent=[df['latency'].min(), df['latency'].max(), df['scale'].min(), df['scale'].max()])
-    # ax2.set_xlabel('Latency')
-    # ax2.set_ylabel('Scale')
-    # fig.colorbar(im2, ax=ax2, label='Time')
-
-    # # # Show the plots
-    # # plt.tight_layout()
-    # # plt.show()
-
-    # # Create a grid of unique latency and scale values
-    # latency_values = df['latency'].unique()
-    # scale_values = df['scale'].unique()
-
-    # # Create a grid of error and time values based on latency and scale
-    # error_grid = df.pivot_table(index='scale', columns='latency', values='error', aggfunc='sum')
-    # time_grid = df.pivot_table(index='scale', columns='latency', values='time', aggfunc='sum')
-
-    # # Create a figure with two subplots
-    # fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-
-    # # Plot the error heatmap
-    # ax1 = axes[0]
-    # ax1.set_title('Error Heatmap')
-    # im1 = ax1.imshow(error_grid, cmap='viridis', extent=[min(latency_values), max(latency_values), min(scale_values), max(scale_values)], aspect='auto', origin='lower')
-    # ax1.set_xlabel('Latency')
-    # ax1.set_ylabel('Scale')
-    # fig.colorbar(im1, ax=ax1, label='Error')
-
-    # # Plot the time heatmap
-    # ax2 = axes[1]
-    # ax2.set_title('Time Heatmap')
-    # im2 = ax2.imshow(time_grid, cmap='viridis', extent=[min(latency_values), max(latency_values), min(scale_values), max(scale_values)], aspect='auto', origin='lower')
-    # ax2.set_xlabel('Latency')
-    # ax2.set_ylabel('Scale')
-    # fig.colorbar(im2, ax=ax2, label='Time')
-
-    # # Show the plots
-    # plt.tight_layout()
-    # plt.show()
+    # Compute overall stats
+    tp = (metric_df['throughput'].min(), metric_df['throughput'].max(), metric_df['throughput'].mean())
+    mt = (metric_df['avg_movement_time'].min(), metric_df['avg_movement_time'].max(), metric_df['avg_movement_time'].mean())
+    target_error = (metric_df['avg_target_error'].min(), metric_df['avg_target_error'].max(), metric_df['avg_target_error'].mean())
+    osd = (metric_df['avg_osd'].min(), metric_df['avg_osd'].max(), metric_df['avg_osd'].mean())
+    
+    with open(f"{data_folder}/sum_stats.csv", mode='w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["Overall Summary Statistics", f"User: {user}"])
+        writer.writerow(["Metric", "Min", "Max", "Mean"])
+        writer.writerow(["Throughput"] + list(tp))
+        writer.writerow(["Movement Time"] + list(mt))
+        writer.writerow(["Target Error"] + list(target_error))
+        writer.writerow(["OSD"] + list(osd))
