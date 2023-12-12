@@ -259,6 +259,7 @@ class InstrumentTracker:
                 
         def click_mouse(self):
                 self.num_clicks += 1
+                # print(f"click #{self.num_clicks}")
                 if self.num_clicks == 1:
                         self.game_start_time = time.time()
                 if self.num_clicks <= self.num_targets:
@@ -585,19 +586,19 @@ class InstrumentTracker:
         def clear_practice_targets(self):
                 self.root.after_cancel(self.after_id)
                 self.mouse_queue.clear()
-                self.canvas.unbind("<Button-1>")                
+                self.canvas.unbind("<Button-1>")
                 self.canvas.delete(self.instrument)
                 for t in self.target_shapes:
                         self.canvas.delete(t)
-                self.target_positions = []
-                self.target_shapes = []
-                self.current_target = 0
-                self.num_clicks = 0
                 msg = self.canvas.create_text(self.screen_center_x, self.screen_center_y, text="Trial Finished. Nice Job!", font=("Arial", 16))
                 self.root.after(1000, self.regen_practice_targets, msg)
 
         def regen_practice_targets(self, msg):
                 self.canvas.delete(msg)
+                self.target_positions = []
+                self.target_shapes = []
+                self.current_target = 0
+                self.num_clicks = 0
                 self.generate_targets(self.target_distance, self.target_width)
                 # Create the instrument at the same position as the start button
                 start_button_x, start_button_y = self.screen_center_x, self.screen_center_y
