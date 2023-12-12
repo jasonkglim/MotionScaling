@@ -3,4 +3,4 @@ import math
 import pandas as pd
 import matplotlib
 
-print("hello world")
+df = pd.read_csv('data_files/user_jason')
