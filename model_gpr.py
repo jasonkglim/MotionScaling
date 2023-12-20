@@ -52,6 +52,8 @@ test_inputs = np.round(test_inputs, 3)
 # Predict on the test inputs
 y_pred, sigma = gp_model.predict(test_inputs, return_std=True)
 
+print(np.shape(y_pred))
+
 # Reshape the predictions and uncertainties to match the grid shape
 y_pred = y_pred.reshape(latency_grid.shape)
 sigma = sigma.reshape(latency_grid.shape)
