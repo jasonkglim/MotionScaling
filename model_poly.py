@@ -45,7 +45,7 @@ n_train_values = []
 for n_train in range(20, 21):
     # Split the data into training and test sets
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
-    
+    print(X_train)
     # Perform polynomial regression
     poly = PolynomialFeatures(degree=2)
     X_train_poly = poly.fit_transform(X_train)
@@ -55,8 +55,10 @@ for n_train in range(20, 21):
     model.fit(X_train_poly, Y_train)
     
     # Predict and calculate the model accuracy on the test set
-    Y_pred = model.predict(X_train)
+    Y_pred = model.predict(X_train_poly)
     accuracy = r2_score(Y_test, Y_pred)
+
+    data["Y_pred"] = Y_pred
     
     # Store the results
     model_accuracies.append(accuracy)
