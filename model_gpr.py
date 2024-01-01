@@ -10,12 +10,24 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 # Function to add red border to maximum value in each row
-def annotate(ax, indices, color='red'):
-    for (i, j) in indices:
-        ax.add_patch(plt.Rectangle((i, j), 1, 1, fill=False, edgecolor=color, lw=3))
+def annotate(ax, data, points, color='red'):
+    """
+    Annotate the heatmap with a rectangle around the training points.
 
-# Assuming 'metric_df' is your DataFrame with columns 'latency', 'scale', and 'performance'
-# You might need to preprocess the data based on your specific requirements.
+    Parameters:
+    ax (matplotlib.axes._subplots.AxesSubplot): The axes on which to annotate.
+    data (pandas.DataFrame): The dataframe used for the heatmap, indexed by 'Latency' and 'Scale'.
+    points (pandas.DataFrame): The training points to highlight.
+    color (str): The color of the rectangles.
+    """
+    for index, row in points.iterrows():
+        # Find the position of the training point in the heatmap
+        row_idx = data.index.get_loc(row['latency'])  # Adjusted for correct key
+        col_idx = data.columns.get_loc(row['scale'])  # Adjusted for correct key
+        
+        # Add a rectangle around the corresponding cell in the heatmap
+        ax.add_patch(plt.Rectangle((col_idx, row_idx), 1, 1, fill=False, edgecolor=color, lw=3))
+
 
 # Read in data
 metric_df = pd.read_csv('data_files/user_jason/metric_df.csv')

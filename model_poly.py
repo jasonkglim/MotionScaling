@@ -1,75 +1,129 @@
 ### script for trying models
 import pandas as pd
-import numpy as np
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
-from matplotlib import pyplot as plt
+from sklearn.metrics import r2_score, mean_squared_error
+import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
-def annotate_extrema(data, ax, extrema_type='max'):
-    if extrema_type == 'max':
-        extrema_index = np.argmax(data, axis=1)
-        color = 'red'
-    if extrema_type == 'min':
-        extrema_index = np.argmin(data, axis=1)
-        color = 'orange'
-    for i, max_col in enumerate(extrema_index):
-        ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
+# Function to add red border to maximum value in each row
+def annotate(ax, data, points, color='red'):
+    """
+    Annotate the heatmap with a rectangle around the training points.
 
-for set_num in range(2, 7):
-    # Read in data
-#    set_num = 6
-    data_folder = f"data_files/set{set_num}"
-    df = pd.read_csv(f'{data_folder}/metric_df.csv')
+    Parameters:
+    ax (matplotlib.axes._subplots.AxesSubplot): The axes on which to annotate.
+    data (pandas.DataFrame): The dataframe used for the heatmap, indexed by 'Latency' and 'Scale'.
+    points (pandas.DataFrame): The training points to highlight.
+    color (str): The color of the rectangles.
+    """
+    for index, row in points.iterrows():
+        # Find the position of the training point in the heatmap
+        row_idx = data.index.get_loc(row['latency'])  # Adjusted for correct key
+        col_idx = data.columns.get_loc(row['scale'])  # Adjusted for correct key
+        
+        # Add a rectangle around the corresponding cell in the heatmap
+        ax.add_patch(plt.Rectangle((col_idx, row_idx), 1, 1, fill=False, edgecolor=color, lw=3))
 
-    latency_vals = [0.0, 0.2, 0.4, 0.6, 0.8]
-    scale_vals = [0.4, 0.6, 0.8, 1.0, 1.2]
+# Read in data file as a pandas dataframe
+data = pd.read_csv('data_files/user_jason/metric_df.csv')
 
-    # Extracting the independent variables and the dependent variable
-    X = df[['latency', 'scale']]
-    df['combo'] = 10*df['throughput'] - df['avg_osd'] - df['avg_target_error']
-    y = df['combo']
+# Extract 'latency' and 'scale' as X, and 'throughput' as Y.
+X = data[['latency', 'scale']]
+Y = data['throughput']
 
-    # Creating polynomial features
-    degrees = [2, 3, 4]  # List of degrees for different models
+# Total number of data points
+n = len(data)
 
-    fig, axes = plt.subplots(1, len(degrees) + 1, figsize=(5 * (len(degrees) + 1), 6))  # Adjusting subplots
+# Initialize lists to store model accuracies and corresponding n_train values
+r2_scores = []
+mse_scores = []
+n_train_values = []
 
-    for i, degree in enumerate(degrees):
-        poly = PolynomialFeatures(degree=degree, include_bias=False)
-        X_poly = poly.fit_transform(X)
+# Repeat the process for n_train = 1 to n - 2
+for n_train in range(1, 26):
+    # Split the data into training and test sets
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
+    # print("train\n", X_train)
+    # print("\ntest\n", X_test)
+    # Perform polynomial regression
+    poly = PolynomialFeatures(degree=2)
+    X_train_poly = poly.fit_transform(X_train)
+    X_poly = poly.transform(X)
+    X_test_poly = poly.transform(X_test)
 
-        # Fitting the polynomial features to Linear Regression
-        model = LinearRegression()
-        model.fit(X_poly, y)
+    # Train model on training set
+    model = LinearRegression()
+    model.fit(X_train_poly, Y_train)
 
-        # Calculating Mean Squared Error
-        y_pred = model.predict(X_poly)
-        mse = mean_squared_error(y, y_pred)
+    # evaluate model accuracy on the test set
+    Y_test_pred = model.predict(X_test_poly)
+    r2_scores.append(r2_score(Y_test, Y_test_pred))
+    mse_scores.append(mean_squared_error(Y_test, Y_test_pred))
 
-        # Plot surface predicted by model
-        mesh_df = pd.DataFrame([[i, j] for i in latency_vals for j in scale_vals], columns=['latency', 'scale'])
-        X_mesh = mesh_df[['latency', 'scale']]
-        X_mesh_poly = poly.fit_transform(X_mesh)
+    # Predict over whole dataset for visualization
+    Y_pred = model.predict(X_poly)
+    data["Y_pred"] = Y_pred
 
-        # Predicting the values for the meshgrid
-        predicted_values = model.predict(X_mesh_poly)
+    # Store the results
+    n_train_values.append(n_train)
 
-        mesh_df[f'predicted_{degree}'] = predicted_values
+    if mse_scores[-1] > 100:
 
-        # Plotting the heatmaps
-        heatmap_predicted = mesh_df.pivot(
-            index='latency', columns='scale', values=f'predicted_{degree}')
-        ax = sns.heatmap(heatmap_predicted, ax=axes[i + 1], annot=True, cmap='YlGnBu')
-        axes[i + 1].set_title(f'Predicted Surface using {degree}th Order Polynomial Regression\nMSE: {mse:.2f}')
-        annotate_extrema(heatmap_predicted.values, ax, extrema_type='max')
+        # Plotting with the annotate function to highlight training points
+        fig, ax = plt.subplots(1, 3, figsize=(18, 8))
 
-    heatmap_original = df.pivot(
-        index='latency', columns='scale', values='combo')
-    ax = sns.heatmap(heatmap_original, ax=axes[0], cmap="YlGnBu", annot=True)
-    axes[0].set_title('Combined Performance vs. Latency and Scale')
-    annotate_extrema(heatmap_original.values, ax, extrema_type='max')
-    plt.tight_layout()
-    plt.savefig(f'{data_folder}/TPcombo_poly_model_results.png')
-    plt.show()
+        # Original data heatmap with all points highlighted (now all are training points)
+        original_data = data.pivot(
+            index='latency', columns='scale', values='throughput'
+        )
+        sns.heatmap(original_data, cmap='YlGnBu', ax=ax[0], annot=True)
+        annotate(ax[0], original_data, X_train, color='red')
+        ax[0].set_title('Original Data')
+        ax[0].set_xlabel('Scale')
+        ax[0].set_ylabel('Latency')
+
+        # Full predicted data heatmap (prediction on the entire dataset)
+        predicted_data = data.pivot(
+            index='latency', columns='scale', values='Y_pred'
+        )
+        sns.heatmap(predicted_data, cmap='YlGnBu', ax=ax[1], annot=True)
+        annotate(ax[1], predicted_data, X_train, color='red')
+        ax[1].set_title('Predicted Data')
+        ax[1].set_xlabel('Scale')
+        ax[1].set_ylabel('Latency')
+
+        # Plot residuals
+        data["residual"] = np.abs(data["throughput"] - data["Y_pred"])
+        residual = data.pivot(
+            index='latency', columns='scale', values='residual'
+        )
+        sns.heatmap(residual, cmap='YlGnBu', ax=ax[2], annot=True)
+        annotate(ax[2], residual, X_train, color='red')
+        ax[2].set_title('Residuals')
+        ax[2].set_xlabel('Scale')
+        ax[2].set_ylabel('Latency')
+
+        plt.tight_layout()
+        plt.show()
+
+print(mse_scores)
+
+# Plotting the results
+fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+axes[0].plot(n_train_values, r2_scores, marker='o')
+axes[0].set_title('R^2')
+axes[0].set_xlabel('Number of Training Points (n_train)')
+axes[0].set_ylabel('Model Accuracy (R^2 Score)')
+axes[0].grid(True)
+
+axes[1].plot(n_train_values, mse_scores, marker='o')
+axes[1].set_title('MSE')
+axes[1].set_xlabel('Number of Training Points (n_train)')
+axes[1].set_ylabel('Model Accuracy (MSE Score)')
+axes[1].grid(True)
+
+plt.savefig('figures/poly2_model_acc_vs_n_train(1).png')
+plt.show()
