@@ -34,79 +34,110 @@ metric_df = pd.read_csv('data_files/user_jason/metric_df.csv')
 
 # Extracting features and target variable
 X = metric_df[['latency', 'scale']]
-y = metric_df['throughput']
+Y = metric_df['throughput']
 
-# Splitting the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
+mse_scores = []
 
-#print(X_train)
-#print(X_test)
+# n_train = 10
+n = len(metric_df)
+n_train_values = [5, 10, 15, 20, 25] #range(1, 26)
+for n_train in n_train_values:
+    # Splitting the data into training and testing sets
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
 
-# Define the Gaussian Process kernel
-kernel = C(1.0, (1e-3, 1e3)) * RBF([1.0, 1.0], (1e-2, 1e2))
+    #print(X_train)
+    #print(X_test)
 
-# Initialize the Gaussian Process Regressor with the chosen kernel
-gp_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, random_state=42)
+    # Define the Gaussian Process kernel
+    kernel = C(1.0, (1e-3, 1e3)) * RBF([1.0, 1.0], (1e-2, 1e2))
 
-# Fit the model to the training data
-gp_model.fit(X, y)
-print(gp_model.kernel_)
+    # Initialize the Gaussian Process Regressor with the chosen kernel
+    gp_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, random_state=42)
 
-# Predict on a denser range of test inputs
-# Generate a grid of test inputs
-latency_range = np.arange(0.0, 0.76, 0.01)
-scale_range = np.arange(0.075, 1.025, 0.025)
+    # Fit the model to the training data
+    gp_model.fit(X_train, Y_train)
+    # print(gp_model.kernel_)
 
-# Create a meshgrid from the input ranges
-latency_grid, scale_grid = np.meshgrid(latency_range, scale_range)
-test_inputs = np.c_[latency_grid.ravel(), scale_grid.ravel()]
-test_inputs = np.round(test_inputs, 3)
-# Predict on the test inputs
-y_pred, sigma = gp_model.predict(test_inputs, return_std=True)
+    # ### Predict on a denser range of test inputs
+    # # Generate a grid of test inputs
+    # latency_range = np.arange(0.0, 0.76, 0.01)
+    # scale_range = np.arange(0.075, 1.025, 0.025)
 
-print(np.shape(y_pred))
+    # # Create a meshgrid from the input ranges
+    # latency_grid, scale_grid = np.meshgrid(latency_range, scale_range)
+    # test_inputs = np.c_[latency_grid.ravel(), scale_grid.ravel()]
+    # test_inputs = np.round(test_inputs, 3)
 
-# Reshape the predictions and uncertainties to match the grid shape
-y_pred = y_pred.reshape(latency_grid.shape)
-sigma = sigma.reshape(latency_grid.shape)
+    # Predict and measure accuracy on the test inputs
+    Y_test_pred, Y_test_pred_std = gp_model.predict(X_test, return_std=True)
+    mse = mean_squared_error(Y_test, Y_test_pred)
+    mse_scores.append(mse)
+    # print(f"Mean Squared Error on the test set: {mse}")
 
-# Create a DataFrame for the predicted values
-pred_df = pd.DataFrame({
-    'latency': test_inputs[:, 0].flatten(),
-    'scale': test_inputs[:, 1].flatten(),
-    'mean': y_pred.flatten(),
-    'std': sigma.flatten()
-})
+    # Predict over whole dataset for visualization
+    Y_full_pred, Y_full_pred_std = gp_model.predict(X, return_std=True)
+    metric_df["throughput_pred"] = Y_full_pred
+    metric_df["throughput_pred_std"] = Y_full_pred_std
 
-# # Evaluate the model performance (you can use other metrics as well)
-# mse = mean_squared_error(y_test, y_pred)
-# print(f"Mean Squared Error on the test set: {mse}")
+    # # Reshape the predictions and uncertainties to match the grid shape
+    # y_pred = y_pred.reshape(latency_grid.shape)
+    # sigma = sigma.reshape(latency_grid.shape)
+
+    # # Create a DataFrame for the predicted values
+    # pred_df = pd.DataFrame({
+    #     'latency': test_inputs[:, 0].flatten(),
+    #     'scale': test_inputs[:, 1].flatten(),
+    #     'mean': y_pred.flatten(),
+    #     'std': sigma.flatten()
+    # })
+
+    # # Evaluate the model performance (you can use other metrics as well)
+    # mse = mean_squared_error(y_test, y_pred)
+    # print(f"Mean Squared Error on the test set: {mse}")
 
 
 
-# Visualization
-fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-# Plot original data
-# Plot heatmap for average movement time
-heatmap_TP = metric_df.pivot(
-        index='latency', columns='scale', values='throughput')
-#print(heatmap_TP)
-ax = sns.heatmap(heatmap_TP, ax=axes[0], cmap="YlGnBu", annot=True, fmt='.3g')
-axes[0].set_title('Throughput vs. Latency and Scale')
-# annotate_extrema(heatmap_MT.values, ax, extrema_type='min')
-indices = [(0, 0), (1, 1)]
-annotate(ax, indices)
+    # Visualization
+    fig, axes = plt.subplots(2, 2, figsize=(12, 9))
+    # Plot original data
+    # Plot heatmap for average movement time
+    heatmap_TP = metric_df.pivot(
+            index='latency', columns='scale', values='throughput')
+    #print(heatmap_TP)
+    sns.heatmap(heatmap_TP, ax=axes[0, 0], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0, 0].set_title('Throughput vs. Latency and Scale')
+    annotate(axes[0, 0], heatmap_TP, X_train)
 
-heatmap_pred_TP = pred_df.pivot(
-    index='latency', columns='scale', values='mean')
-ax = sns.heatmap(heatmap_pred_TP, ax=axes[1], cmap="YlGnBu", xticklabels=9, yticklabels=9)
-axes[1].set_title('Mean Predicted Throughput vs. Latency and Scale')
+    heatmap_pred_TP = metric_df.pivot(
+        index='latency', columns='scale', values='throughput_pred')
+    sns.heatmap(heatmap_pred_TP, ax=axes[0, 1], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0, 1].set_title('Mean Predicted Throughput vs. Latency and Scale')
+    annotate(axes[0, 1], heatmap_pred_TP, X_train)
 
-heatmap_pred_std = pred_df.pivot(
-    index='latency', columns='scale', values='std')
-ax = sns.heatmap(heatmap_pred_std, ax=axes[2], cmap="YlGnBu", xticklabels=9, yticklabels=9)
-axes[2].set_title('Throughput Prediction STD vs. Latency and Scale')
+    heatmap_pred_std = metric_df.pivot(
+        index='latency', columns='scale', values='throughput_pred_std')
+    sns.heatmap(heatmap_pred_std, ax=axes[1, 0], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 0].set_title('Throughput Prediction STD vs. Latency and Scale')
+    annotate(axes[1, 0], heatmap_pred_std, X_train)
 
-plt.tight_layout()
-plt.savefig('data_files/user_jason/gpr_results.png')
+    metric_df["residual"] = np.abs(metric_df["throughput"] - metric_df["throughput_pred"])
+    heatmap_res = metric_df.pivot(
+        index='latency', columns='scale', values='residual')
+    sns.heatmap(heatmap_res, ax=axes[1, 1], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1, 1].set_title('Throughput Prediction Residuals vs. Latency and Scale')
+    annotate(axes[1, 1], heatmap_res, X_train)
+
+    plt.tight_layout()
+    # plt.savefig('figures/gpr_results.png')
+    plt.show()
+
+# Plot accuracy vs. n_train
+plt.figure()
+plt.plot(n_train_values, mse_scores, marker='o')
+plt.title('MSE')
+plt.xlabel('Number of Training Points (n_train)')
+plt.ylabel('Model Accuracy (MSE Score)')
+plt.grid(True)
+
+plt.savefig('figures/gpr_model_acc_vs_n_train(5).png')
 plt.show()

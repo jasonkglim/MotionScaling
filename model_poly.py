@@ -43,7 +43,7 @@ mse_scores = []
 n_train_values = []
 
 # Repeat the process for n_train = 1 to n - 2
-for n_train in range(1, 26):
+for n_train in range(1, n-2):
     # Split the data into training and test sets
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
     # print("train\n", X_train)
@@ -70,44 +70,44 @@ for n_train in range(1, 26):
     # Store the results
     n_train_values.append(n_train)
 
-    if mse_scores[-1] > 100:
+    #if mse_scores[-1] > 100:
 
-        # Plotting with the annotate function to highlight training points
-        fig, ax = plt.subplots(1, 3, figsize=(18, 8))
+    # Plotting with the annotate function to highlight training points
+    fig, ax = plt.subplots(1, 3, figsize=(18, 8))
 
-        # Original data heatmap with all points highlighted (now all are training points)
-        original_data = data.pivot(
-            index='latency', columns='scale', values='throughput'
-        )
-        sns.heatmap(original_data, cmap='YlGnBu', ax=ax[0], annot=True)
-        annotate(ax[0], original_data, X_train, color='red')
-        ax[0].set_title('Original Data')
-        ax[0].set_xlabel('Scale')
-        ax[0].set_ylabel('Latency')
+    # Original data heatmap with all points highlighted (now all are training points)
+    original_data = data.pivot(
+        index='latency', columns='scale', values='throughput'
+    )
+    sns.heatmap(original_data, cmap='YlGnBu', ax=ax[0], annot=True)
+    annotate(ax[0], original_data, X_train, color='red')
+    ax[0].set_title('Original Data')
+    ax[0].set_xlabel('Scale')
+    ax[0].set_ylabel('Latency')
 
-        # Full predicted data heatmap (prediction on the entire dataset)
-        predicted_data = data.pivot(
-            index='latency', columns='scale', values='Y_pred'
-        )
-        sns.heatmap(predicted_data, cmap='YlGnBu', ax=ax[1], annot=True)
-        annotate(ax[1], predicted_data, X_train, color='red')
-        ax[1].set_title('Predicted Data')
-        ax[1].set_xlabel('Scale')
-        ax[1].set_ylabel('Latency')
+    # Full predicted data heatmap (prediction on the entire dataset)
+    predicted_data = data.pivot(
+        index='latency', columns='scale', values='Y_pred'
+    )
+    sns.heatmap(predicted_data, cmap='YlGnBu', ax=ax[1], annot=True)
+    annotate(ax[1], predicted_data, X_train, color='red')
+    ax[1].set_title('Predicted Data')
+    ax[1].set_xlabel('Scale')
+    ax[1].set_ylabel('Latency')
 
-        # Plot residuals
-        data["residual"] = np.abs(data["throughput"] - data["Y_pred"])
-        residual = data.pivot(
-            index='latency', columns='scale', values='residual'
-        )
-        sns.heatmap(residual, cmap='YlGnBu', ax=ax[2], annot=True)
-        annotate(ax[2], residual, X_train, color='red')
-        ax[2].set_title('Residuals')
-        ax[2].set_xlabel('Scale')
-        ax[2].set_ylabel('Latency')
+    # Plot residuals
+    data["residual"] = np.abs(data["throughput"] - data["Y_pred"])
+    residual = data.pivot(
+        index='latency', columns='scale', values='residual'
+    )
+    sns.heatmap(residual, cmap='YlGnBu', ax=ax[2], annot=True)
+    annotate(ax[2], residual, X_train, color='red')
+    ax[2].set_title('Residuals')
+    ax[2].set_xlabel('Scale')
+    ax[2].set_ylabel('Latency')
 
-        plt.tight_layout()
-        plt.show()
+    plt.tight_layout()
+    plt.show()
 
 # Plotting the results
 fig, axes = plt.subplots(1, 2, figsize=(12, 6))
@@ -123,5 +123,5 @@ axes[1].set_xlabel('Number of Training Points (n_train)')
 axes[1].set_ylabel('Model Accuracy (MSE Score)')
 axes[1].grid(True)
 
-plt.savefig('figures/poly2_model_acc_vs_n_train(1).png')
+plt.savefig('figures/poly2_model_acc_vs_n_train(2).png')
 plt.show()
