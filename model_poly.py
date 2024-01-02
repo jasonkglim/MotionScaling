@@ -109,8 +109,6 @@ for n_train in range(1, 26):
         plt.tight_layout()
         plt.show()
 
-print(mse_scores)
-
 # Plotting the results
 fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 axes[0].plot(n_train_values, r2_scores, marker='o')
