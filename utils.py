@@ -41,3 +41,26 @@ def annotate(ax, data, points, color='red'):
         
         # Add a rectangle around the corresponding cell in the heatmap
         ax.add_patch(plt.Rectangle((col_idx, row_idx), 1, 1, fill=False, edgecolor=color, lw=3))
+
+
+# Picks training points evenly distributed across input domain
+def even_train_split(data, n_train):
+    # Ensure that n_train is within the valid range
+    if not 2 <= n_train <= len(data) - 2:
+        raise ValueError("n_train must be between 2 and n-2")
+
+    # Sort data based on 'latency' and 'scale' to ensure even distribution
+    data_sorted = data.sort_values(by=['latency', 'scale'])
+
+    # Select training data points evenly
+    indices = np.round(np.linspace(0, len(data_sorted) - 1, n_train)).astype(int)
+    train_data = data_sorted.iloc[indices]
+
+    # The rest of the data will be used as the test set
+    test_data = data_sorted.drop(train_data.index)
+
+    # Splitting the datasets into X (inputs) and y (output)
+    X_train, y_train = train_data[['latency', 'scale']], train_data['throughput']
+    X_test, y_test = test_data[['latency', 'scale']], test_data['throughput']
+
+    return X_train, X_test, y_train, y_test

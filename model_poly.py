@@ -1,113 +1,79 @@
-### script for trying models
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-from utils import stratified_sample, annotate
+from utils import stratified_sample, annotate, even_train_split
+import glob  # Importing the glob module to find all the files matching a pattern
 
+# Pattern to match the data files
+file_pattern = "data_files/user_*/metric_df.csv"
 
-# Read in data file as a pandas dataframe
-data = pd.read_csv('data_files/user_jason/metric_df.csv')
+# Initialize a dictionary to store results from each dataset
+all_results = {}
 
-# Extract full dataset input 'latency' and 'scale' as X, and 'throughput' as Y.
-X = data[['latency', 'scale']]
-Y = data['throughput']
+# Loop through each file that matches the file pattern
+for filepath in glob.glob(file_pattern):
+    print(f"Processing {filepath}...")
 
-# Total number of data points
-n = len(data)
+    # Read in data file as a pandas dataframe
+    data = pd.read_csv(filepath)
 
-# Initialize lists to store model accuracies and corresponding n_train values
-r2_scores = []
-mse_scores = []
-# n_train_values = []
+    # Extract full dataset input 'latency' and 'scale' as X, and 'throughput' as Y.
+    X = data[['latency', 'scale']]
+    Y = data['throughput']
 
-# Repeat the process for n_train = 1 to n - 2
-n_train_values = range(1, 27) # [4, 8, 12, 16, 20, 24]
-for n_train in n_train_values:
-    # Split the data into training and test sets
-    train_set, test_set = stratified_sample(data, n_train)
-    X_train = train_set[['latency', 'scale']]
-    X_test = test_set[['latency', 'scale']]
-    Y_train = train_set['throughput']
-    Y_test = test_set['throughput']
-    # X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
-    # print("train\n", X_train)
-    # print("\ntest\n", X_test)
-    # Perform polynomial regression
-    poly = PolynomialFeatures(degree=2)
-    X_train_poly = poly.fit_transform(X_train)
-    X_poly = poly.transform(X)
-    X_test_poly = poly.transform(X_test)
+    # Total number of data points
+    n = len(data)
 
-    # Train model on training set
-    model = LinearRegression()
-    model.fit(X_train_poly, Y_train)
+    # Initialize lists to store model accuracies and corresponding n_train values
+    r2_scores = []
+    mse_scores = []
+    full_mse_scores = []
+    n_train_values = range(2, n-2)
 
-    # evaluate model accuracy on the test set
-    Y_test_pred = model.predict(X_test_poly)
-    r2_scores.append(r2_score(Y_test, Y_test_pred))
-    mse_scores.append(mean_squared_error(Y_test, Y_test_pred))
+    for n_train in n_train_values:
+        # Split, train and predict as in the original script
+        X_train, X_test, Y_train, Y_test = even_train_split(data, n_train)
+        poly = PolynomialFeatures(degree=2)
+        X_train_poly = poly.fit_transform(X_train)
+        X_test_poly = poly.transform(X_test)
+        model = LinearRegression()
+        model.fit(X_train_poly, Y_train)
+        Y_test_pred = model.predict(X_test_poly)
+        r2_scores.append(r2_score(Y_test, Y_test_pred))
+        mse_scores.append(mean_squared_error(Y_test, Y_test_pred))
+        Y_pred = model.predict(poly.transform(X))
+        full_mse_scores.append(mean_squared_error(Y, Y_pred))
 
-    # Predict over whole dataset for visualization
-    Y_pred = model.predict(X_poly)
-    data["Y_pred"] = Y_pred
+    # Store results from this dataset
+    all_results[filepath] = {
+        'n_train_values': list(n_train_values),
+        'full_mse_scores': full_mse_scores,
+        'mse_scores': mse_scores
+    }
 
-    if mse_scores[-1] > 10:
+# Plotting the results for all datasets
+fig, axes = plt.subplots(2, 1, figsize=(12, 12))
+for filepath, results in all_results.items():
+    user_name = filepath.split('/')[1]  # Extract user name from the filepath
+    axes[0].plot(results['n_train_values'], results['full_mse_scores'], marker='o', label=user_name)
+    axes[1].plot(results['n_train_values'], results['mse_scores'], marker='o', label=user_name)
 
-        # Plotting with the annotate function to highlight training points
-        fig, ax = plt.subplots(1, 3, figsize=(18, 8))
-
-        # Original data heatmap with all points highlighted (now all are training points)
-        original_data = data.pivot(
-            index='latency', columns='scale', values='throughput'
-        )
-        sns.heatmap(original_data, cmap='YlGnBu', ax=ax[0], annot=True)
-        annotate(ax[0], original_data, X_train, color='red')
-        ax[0].set_title('Original Data')
-        ax[0].set_xlabel('Scale')
-        ax[0].set_ylabel('Latency')
-
-        # Full predicted data heatmap (prediction on the entire dataset)
-        predicted_data = data.pivot(
-            index='latency', columns='scale', values='Y_pred'
-        )
-        sns.heatmap(predicted_data, cmap='YlGnBu', ax=ax[1], annot=True)
-        annotate(ax[1], predicted_data, X_train, color='red')
-        ax[1].set_title('Predicted Data')
-        ax[1].set_xlabel('Scale')
-        ax[1].set_ylabel('Latency')
-
-        # Plot residuals
-        data["residual"] = np.abs(data["throughput"] - data["Y_pred"])
-        residual = data.pivot(
-            index='latency', columns='scale', values='residual'
-        )
-        sns.heatmap(residual, cmap='YlGnBu', ax=ax[2], annot=True)
-        annotate(ax[2], residual, X_train, color='red')
-        ax[2].set_title('Residuals')
-        ax[2].set_xlabel('Scale')
-        ax[2].set_ylabel('Latency')
-
-        plt.tight_layout()
-        plt.show()
-
-# Plotting the results
-fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-axes[0].plot(n_train_values, r2_scores, marker='o')
-axes[0].set_title('R^2')
+axes[0].set_title('MSE on whole dataset for all users')
 axes[0].set_xlabel('Number of Training Points (n_train)')
 axes[0].set_ylabel('Model Accuracy (R^2 Score)')
 axes[0].grid(True)
+axes[0].legend()
 
-axes[1].plot(n_train_values, mse_scores, marker='o')
-axes[1].set_title('MSE')
+axes[1].set_title('MSE on test set for all users')
 axes[1].set_xlabel('Number of Training Points (n_train)')
 axes[1].set_ylabel('Model Accuracy (MSE Score)')
 axes[1].grid(True)
+axes[1].legend()
 
-plt.savefig('figures/poly2_model_acc_vs_n_train_stratsplit(2).png')
+plt.savefig('figures/poly2_model_acc_vs_n_train_evensplit_all_users.png')
 plt.show()
