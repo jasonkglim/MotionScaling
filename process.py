@@ -232,29 +232,30 @@ def plot_key_heatmaps(metric_df, data_folder):
         for i, max_col in enumerate(extrema_index):
             ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
 
-    # Plot heatmap for average movement time
-    heatmap_MT = metric_df.pivot(
-        index='latency', columns='scale', values='avg_movement_time')
-    ax = sns.heatmap(heatmap_MT, ax=axes[0], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[0].set_title('Avg Movement Time vs. Latency and Scale')
-    annotate_extrema(heatmap_MT.values, ax, extrema_type='min')
-
     # Plot the heatmap for throughput
     heatmap_throughput = metric_df.pivot(
         index='latency', columns='scale', values='throughput')
-    ax = sns.heatmap(heatmap_throughput, ax=axes[1], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1].set_title('Throughput vs. Latency and Scale')
+    ax = sns.heatmap(heatmap_throughput, ax=axes[0], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[0].set_title('Throughput vs. Latency and Scale')
     annotate_extrema(heatmap_throughput.values, ax)
 
     # Plot heatmap for total error (target deviation + osd)
     metric_df['total_error'] = metric_df['avg_osd'] + metric_df['avg_target_error']
     heatmap_error = metric_df.pivot(
         index='latency', columns='scale', values='total_error')
-    ax = sns.heatmap(heatmap_error, ax=axes[2], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[2].set_title('Total Error vs. Latency and Scale')
+    ax = sns.heatmap(heatmap_error, ax=axes[1], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[1].set_title('Total Error vs. Latency and Scale')
     annotate_extrema(heatmap_error.values, ax, extrema_type='min')
 
-    plt.title("Data for Lauren")
+    # Plot heatmap for combined performance (movement speed - total error)
+    metric_df['combo'] = 10*metric_df['throughput'] - metric_df['total_error']
+    heatmap_combo = metric_df.pivot(
+        index='latency', columns='scale', values='combo')
+    ax = sns.heatmap(heatmap_combo, ax=axes[2], cmap="YlGnBu", annot=True, fmt='.3g')
+    axes[2].set_title('Combined Performance vs. Latency and Scale')
+    annotate_extrema(heatmap_combo.values, ax, extrema_type='max')
+
+    # plt.title("User A")
     plt.tight_layout()
     plt.savefig(f"{data_folder}/heatmap_key_metrics.png")
     plt.show()
@@ -422,8 +423,8 @@ if __name__ == "__main__":
                                                    'effective_width', 'effective_distance', 'avg_osd', 'target_error_rate',
                                                    'avg_translation_efficiency', 'num_clutches'])
     metric_df.to_csv(f'{data_folder}/metric_df.csv')
-    plot_all_heatmaps(metric_df, data_folder)
-    # plot_key_heatmaps(metric_df, data_folder)
+    # plot_all_heatmaps(metric_df, data_folder)
+    plot_key_heatmaps(metric_df, data_folder)
     
     # Compute overall stats
     tp = (metric_df['throughput'].min(), metric_df['throughput'].max(), metric_df['throughput'].mean())
