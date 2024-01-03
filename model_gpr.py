@@ -8,25 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from matplotlib import pyplot as plt
 import seaborn as sns
-
-# Function to add red border to maximum value in each row
-def annotate(ax, data, points, color='red'):
-    """
-    Annotate the heatmap with a rectangle around the training points.
-
-    Parameters:
-    ax (matplotlib.axes._subplots.AxesSubplot): The axes on which to annotate.
-    data (pandas.DataFrame): The dataframe used for the heatmap, indexed by 'Latency' and 'Scale'.
-    points (pandas.DataFrame): The training points to highlight.
-    color (str): The color of the rectangles.
-    """
-    for index, row in points.iterrows():
-        # Find the position of the training point in the heatmap
-        row_idx = data.index.get_loc(row['latency'])  # Adjusted for correct key
-        col_idx = data.columns.get_loc(row['scale'])  # Adjusted for correct key
-        
-        # Add a rectangle around the corresponding cell in the heatmap
-        ax.add_patch(plt.Rectangle((col_idx, row_idx), 1, 1, fill=False, edgecolor=color, lw=3))
+from utils import stratified_sample, annotate
 
 
 # Read in data
@@ -40,11 +22,15 @@ mse_scores = []
 
 # n_train = 10
 n = len(metric_df)
-n_train_values = [5, 10, 15, 20, 25] #range(1, 26)
+n_train_values = range(2, 27)
 for n_train in n_train_values:
     # Splitting the data into training and testing sets
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
-
+    # X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
+    train_set, test_set = stratified_sample(metric_df, n_train)
+    X_train = train_set[['latency', 'scale']]
+    X_test = test_set[['latency', 'scale']]
+    Y_train = train_set['throughput']
+    Y_test = test_set['throughput']
     #print(X_train)
     #print(X_test)
 
@@ -97,39 +83,39 @@ for n_train in n_train_values:
 
 
 
-    # Visualization
-    fig, axes = plt.subplots(2, 2, figsize=(12, 9))
-    # Plot original data
-    # Plot heatmap for average movement time
-    heatmap_TP = metric_df.pivot(
-            index='latency', columns='scale', values='throughput')
-    #print(heatmap_TP)
-    sns.heatmap(heatmap_TP, ax=axes[0, 0], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[0, 0].set_title('Throughput vs. Latency and Scale')
-    annotate(axes[0, 0], heatmap_TP, X_train)
+    # # Visualization
+    # fig, axes = plt.subplots(2, 2, figsize=(12, 9))
+    # # Plot original data
+    # # Plot heatmap for average movement time
+    # heatmap_TP = metric_df.pivot(
+    #         index='latency', columns='scale', values='throughput')
+    # #print(heatmap_TP)
+    # sns.heatmap(heatmap_TP, ax=axes[0, 0], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[0, 0].set_title('Throughput vs. Latency and Scale')
+    # annotate(axes[0, 0], heatmap_TP, X_train)
 
-    heatmap_pred_TP = metric_df.pivot(
-        index='latency', columns='scale', values='throughput_pred')
-    sns.heatmap(heatmap_pred_TP, ax=axes[0, 1], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[0, 1].set_title('Mean Predicted Throughput vs. Latency and Scale')
-    annotate(axes[0, 1], heatmap_pred_TP, X_train)
+    # heatmap_pred_TP = metric_df.pivot(
+    #     index='latency', columns='scale', values='throughput_pred')
+    # sns.heatmap(heatmap_pred_TP, ax=axes[0, 1], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[0, 1].set_title('Mean Predicted Throughput vs. Latency and Scale')
+    # annotate(axes[0, 1], heatmap_pred_TP, X_train)
 
-    heatmap_pred_std = metric_df.pivot(
-        index='latency', columns='scale', values='throughput_pred_std')
-    sns.heatmap(heatmap_pred_std, ax=axes[1, 0], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 0].set_title('Throughput Prediction STD vs. Latency and Scale')
-    annotate(axes[1, 0], heatmap_pred_std, X_train)
+    # heatmap_pred_std = metric_df.pivot(
+    #     index='latency', columns='scale', values='throughput_pred_std')
+    # sns.heatmap(heatmap_pred_std, ax=axes[1, 0], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[1, 0].set_title('Throughput Prediction STD vs. Latency and Scale')
+    # annotate(axes[1, 0], heatmap_pred_std, X_train)
 
-    metric_df["residual"] = np.abs(metric_df["throughput"] - metric_df["throughput_pred"])
-    heatmap_res = metric_df.pivot(
-        index='latency', columns='scale', values='residual')
-    sns.heatmap(heatmap_res, ax=axes[1, 1], cmap="YlGnBu", annot=True, fmt='.3g')
-    axes[1, 1].set_title('Throughput Prediction Residuals vs. Latency and Scale')
-    annotate(axes[1, 1], heatmap_res, X_train)
+    # metric_df["residual"] = np.abs(metric_df["throughput"] - metric_df["throughput_pred"])
+    # heatmap_res = metric_df.pivot(
+    #     index='latency', columns='scale', values='residual')
+    # sns.heatmap(heatmap_res, ax=axes[1, 1], cmap="YlGnBu", annot=True, fmt='.3g')
+    # axes[1, 1].set_title('Throughput Prediction Residuals vs. Latency and Scale')
+    # annotate(axes[1, 1], heatmap_res, X_train)
 
-    plt.tight_layout()
-    # plt.savefig('figures/gpr_results.png')
-    plt.show()
+    # plt.tight_layout()
+    # # plt.savefig('figures/gpr_results.png')
+    # plt.show()
 
 # Plot accuracy vs. n_train
 plt.figure()
@@ -139,5 +125,5 @@ plt.xlabel('Number of Training Points (n_train)')
 plt.ylabel('Model Accuracy (MSE Score)')
 plt.grid(True)
 
-plt.savefig('figures/gpr_model_acc_vs_n_train(5).png')
+plt.savefig('figures/gpr_model_acc_vs_n_train_stratsplit(3).png')
 plt.show()
