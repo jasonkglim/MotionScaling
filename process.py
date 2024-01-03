@@ -212,7 +212,7 @@ def plot_all_heatmaps(metric_df, data_folder):
 
 def plot_key_heatmaps(metric_df, data_folder):
     # Create a 2x5 subplot for the heatmaps
-    fig, axes = plt.subplots(1, 3, figsize=(32, 12))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 6))
 
     # Define a function to highlight the maximum value in each row
     def highlight_max(data):
@@ -357,7 +357,7 @@ if __name__ == "__main__":
             fs_mean = np.mean(fs)
             fs_std = np.std(fs)
             #if fs_std > 5:
-            print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
+            # print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
 
 
             # # # Generate figure for metrics
