@@ -7,7 +7,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from utils import stratified_sample, annotate, even_train_split
+from utils import stratified_sample, annotate, even_train_split, annotate_extrema
 
 
 # Read in data file as a pandas dataframe
@@ -25,10 +25,11 @@ n = len(data)
 r2_scores = []
 mse_scores = []
 full_mse_scores = []
+optimal_match_rate = []
 # n_train_values = []
 
 # Repeat the process for n_train = 1 to n - 2
-n_train_values = range(2, 27) # [4, 8, 12, 16, 20, 24]
+n_train_values = [25] #range(2, n-2) # [4, 8, 12, 16, 20, 24]
 for n_train in n_train_values:
 	# Split the data into training and test sets
 	# train_set, test_set = stratified_sample(data, n_train)
@@ -61,8 +62,41 @@ for n_train in n_train_values:
 	full_mse_scores.append(mean_squared_error(Y, Y_pred))
 	#if mse_scores[-1] > 10:
 
+	# Predict over dense inputs
+	latency_range = np.array(data['latency'].unique())# np.arange(0.0, 0.76, 0.01)
+	scale_range = np.arange(0.075, 1.025, 0.025)
+
+	# Create a meshgrid from the input ranges
+	latency_grid, scale_grid = np.meshgrid(latency_range, scale_range)
+	X_dense = np.c_[latency_grid.ravel(), scale_grid.ravel()]
+	X_dense = np.round(X_dense, 3)
+	X_dense_poly = poly.transform(X_dense)
+
+	Y_pred_dense = model.predict(X_dense_poly)
+
+	dense_df = pd.DataFrame({
+            'latency': X_dense[:, 0].flatten(),
+            'scale': X_dense[:, 1].flatten(),
+            'Y_pred_dense': Y_pred_dense.flatten()
+        })
+	optimal_scale_dense = dense_df.loc[dense_df.groupby('latency')['Y_pred_dense'].idxmax()][['latency', 'scale']]
+	print(optimal_scale_dense)
+
+	# Calculate optimal scale match rate
+	# Step 1: Find optimal scales for both datasets
+	optimal_scale_ref = data.loc[data.groupby('latency')['performance'].idxmax()][['latency', 'scale']]
+	optimal_scale_pred = data.loc[data.groupby('latency')['Y_pred'].idxmax()][['latency', 'scale']]
+
+	# Step 2: Merge the results on 'latency'
+	merged_data = pd.merge(optimal_scale_ref, optimal_scale_pred, on='latency', suffixes=('_ref', '_pred'))
+
+	# Step 3: Count the number of matches
+	matches = (merged_data['scale_ref'] == merged_data['scale_pred']).sum()
+
+	optimal_match_rate.append(matches / 4)
+
 	# Plotting with the annotate function to highlight training points
-	cond = n_train in [5, 10, 15, 20, 25]
+	cond = True # n_train in [25]
 	if cond:
 		fig, ax = plt.subplots(1, 3, figsize=(18, 8))
 
@@ -71,48 +105,68 @@ for n_train in n_train_values:
 			index='latency', columns='scale', values='performance'
 		)
 		sns.heatmap(original_data, cmap='YlGnBu', ax=ax[0], annot=True)
-		annotate(ax[0], original_data, X_train, color='red')
+		# annotate(ax[0], original_data, X_train, color='green')
 		ax[0].set_title('Original Data Performance Metric')
 		ax[0].set_xlabel('Scale')
 		ax[0].set_ylabel('Latency')
+		annotate_extrema(original_data.values, ax[0])
 
 		# Full predicted data heatmap (prediction on the entire dataset)
 		predicted_data = data.pivot(
 			index='latency', columns='scale', values='Y_pred'
 		)
 		sns.heatmap(predicted_data, cmap='YlGnBu', ax=ax[1], annot=True)
-		annotate(ax[1], predicted_data, X_train, color='red')
+		annotate(ax[1], predicted_data, X_train, color='green')
 		ax[1].set_title('Predicted Data')
 		ax[1].set_xlabel('Scale')
 		ax[1].set_ylabel('Latency')
+		annotate_extrema(predicted_data.values, ax[1])
 
-		# Plot residuals
-		data["residual"] = np.abs(data["performance"] - data["Y_pred"])
-		residual = data.pivot(
-			index='latency', columns='scale', values='residual'
+		dense_pred_data = dense_df.pivot(
+			index='latency', columns='scale', values='Y_pred_dense'
 		)
-		sns.heatmap(residual, cmap='YlGnBu', ax=ax[2], annot=True)
-		annotate(ax[2], residual, X_train, color='red')
-		ax[2].set_title('Residuals')
+		sns.heatmap(dense_pred_data, cmap='YlGnBu', ax=ax[2], annot=True)
+		# annotate(ax[1], dense_pred_data, X_train, color='green')
+		ax[2].set_title('Predicted Data')
 		ax[2].set_xlabel('Scale')
 		ax[2].set_ylabel('Latency')
+		annotate_extrema(dense_pred_data.values, ax[2])
+
+		# # Plot residuals
+		# data["residual"] = np.abs(data["performance"] - data["Y_pred"])
+		# residual = data.pivot(
+		# 	index='latency', columns='scale', values='residual'
+		# )
+		# sns.heatmap(residual, cmap='YlGnBu', ax=ax[2], annot=True)
+		# annotate(ax[2], residual, X_train, color='green')
+		# ax[2].set_title('Residuals')
+		# ax[2].set_xlabel('Scale')
+		# ax[2].set_ylabel('Latency')
+		# annotate_extrema(residual.values, ax[2], 'min')
 
 		plt.tight_layout()
 		plt.show()
 
-# Plotting the results
-fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-axes[0].plot(n_train_values, full_mse_scores, marker='o')
-axes[0].set_title('MSE on whole dataset')
-axes[0].set_xlabel('Number of Training Points (n_train)')
-axes[0].set_ylabel('Model Accuracy (R^2 Score)')
-axes[0].grid(True)
+# # Plotting the results
+# fig, axes = plt.subplots(1, 3, figsize=(16, 6))
+# axes[0].plot(n_train_values, full_mse_scores, marker='o')
+# axes[0].set_title('MSE on whole dataset')
+# axes[0].set_xlabel('Number of Training Points (n_train)')
+# axes[0].set_ylabel('Model Accuracy (R^2 Score)')
+# #axes[0].grid(True)
 
-axes[1].plot(n_train_values, mse_scores, marker='o')
-axes[1].set_title('MSE on test set')
-axes[1].set_xlabel('Number of Training Points (n_train)')
-axes[1].set_ylabel('Model Accuracy (MSE Score)')
-axes[1].grid(True)
+# axes[1].plot(n_train_values, mse_scores, marker='o')
+# axes[1].set_title('MSE on test set')
 
-plt.savefig('figures/poly2_model_perfomance_metric.png')
-plt.show()
+# axes[1].set_xlabel('Number of Training Points (n_train)')
+# axes[1].set_ylabel('Model Accuracy (MSE Score)')
+# # axes[1].grid(True)
+
+# axes[2].plot(n_train_values, optimal_match_rate, marker='o')
+# axes[2].set_title('Correct Optimal Scale Predictions')
+# axes[2].set_xlabel('Number of Training Points (n_train)')
+# axes[2].set_ylabel('Number of matches')
+# # axes[2].grid(True)
+
+# plt.savefig('figures/poly2_model_optimal_scale_match_sujaan.png')
+# plt.show()

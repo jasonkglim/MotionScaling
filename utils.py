@@ -64,3 +64,15 @@ def even_train_split(data, n_train, y_metric):
     X_test, y_test = test_data[['latency', 'scale']], test_data[y_metric]
 
     return X_train, X_test, y_train, y_test
+
+
+# Function to add red border to maximum value in each row
+def annotate_extrema(data, ax, extrema_type='max'):
+    if extrema_type == 'max':
+        extrema_index = np.nanargmax(data, axis=1)
+        color = 'red'
+    if extrema_type == 'min':
+        extrema_index = np.nanargmin(data, axis=1)
+        color = 'orange'
+    for i, max_col in enumerate(extrema_index):
+        ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
