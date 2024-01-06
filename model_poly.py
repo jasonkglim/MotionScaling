@@ -26,6 +26,7 @@ r2_scores = []
 mse_scores = []
 full_mse_scores = []
 optimal_match_rate = []
+optimal_scale_errors = []
 # n_train_values = []
 
 # Repeat the process for n_train = 1 to n - 2
@@ -79,24 +80,31 @@ for n_train in n_train_values:
             'scale': X_dense[:, 1].flatten(),
             'Y_pred_dense': Y_pred_dense.flatten()
         })
+	
 	optimal_scale_dense = dense_df.loc[dense_df.groupby('latency')['Y_pred_dense'].idxmax()][['latency', 'scale']]
-	print(optimal_scale_dense)
-
-	# Calculate optimal scale match rate
-	# Step 1: Find optimal scales for both datasets
 	optimal_scale_ref = data.loc[data.groupby('latency')['performance'].idxmax()][['latency', 'scale']]
 	optimal_scale_pred = data.loc[data.groupby('latency')['Y_pred'].idxmax()][['latency', 'scale']]
+	print(optimal_scale_ref)
+	print(optimal_scale_pred)
+	print(optimal_scale_dense)
 
-	# Step 2: Merge the results on 'latency'
-	merged_data = pd.merge(optimal_scale_ref, optimal_scale_pred, on='latency', suffixes=('_ref', '_pred'))
+	# Merge the results on 'latency'
+	merged_ref_pred = pd.merge(optimal_scale_ref, optimal_scale_pred, 
+						on='latency', suffixes=('_ref', '_pred'))
+	
+	merged_ref_dense = pd.merge(optimal_scale_ref, optimal_scale_dense, 
+						on='latency', suffixes=('_ref', '_dense'))
+	
 
-	# Step 3: Count the number of matches
-	matches = (merged_data['scale_ref'] == merged_data['scale_pred']).sum()
+	# Count the number of matches
+	matches = (merged_ref_pred['scale_ref'] == merged_ref_pred['scale_pred']).sum()
+	scale_error = np.abs(merged_ref_dense['scale_ref'] - merged_ref_dense['scale_dense']).mean()
 
 	optimal_match_rate.append(matches / 4)
+	optimal_scale_errors.append(scale_error)
 
 	# Plotting with the annotate function to highlight training points
-	cond = True # n_train in [25]
+	cond = False # n_train in [25]
 	if cond:
 		fig, ax = plt.subplots(1, 3, figsize=(18, 8))
 
@@ -147,26 +155,31 @@ for n_train in n_train_values:
 		plt.tight_layout()
 		plt.show()
 
-# # Plotting the results
-# fig, axes = plt.subplots(1, 3, figsize=(16, 6))
-# axes[0].plot(n_train_values, full_mse_scores, marker='o')
-# axes[0].set_title('MSE on whole dataset')
-# axes[0].set_xlabel('Number of Training Points (n_train)')
-# axes[0].set_ylabel('Model Accuracy (R^2 Score)')
-# #axes[0].grid(True)
+# Plotting the results
+fig, axes = plt.subplots(2, 2, figsize=(16, 6))
+axes[0, 0].plot(n_train_values, full_mse_scores, marker='o')
+axes[0, 0].set_title('MSE on whole dataset')
+axes[0, 0].set_xlabel('Number of Training Points (n_train)')
+axes[0, 0].set_ylabel('Model Accuracy (R^2 Score)')
+#axes[0].grid(True)
 
-# axes[1].plot(n_train_values, mse_scores, marker='o')
-# axes[1].set_title('MSE on test set')
+axes[0, 1].plot(n_train_values, mse_scores, marker='o')
+axes[0, 1].set_title('MSE on test set') 
+axes[0, 1].set_xlabel('Number of Training Points (n_train)')
+axes[0, 1].set_ylabel('Model Accuracy (MSE Score)')
+# axes[1].grid(True)
 
-# axes[1].set_xlabel('Number of Training Points (n_train)')
-# axes[1].set_ylabel('Model Accuracy (MSE Score)')
-# # axes[1].grid(True)
+axes[1, 0].plot(n_train_values, optimal_match_rate, marker='o')
+axes[1, 0].set_title('Correct Optimal Scale Predictions')
+axes[1, 0].set_xlabel('Number of Training Points (n_train)')
+axes[1, 0].set_ylabel('Number of matches')
+# axes[2].grid(True)
 
-# axes[2].plot(n_train_values, optimal_match_rate, marker='o')
-# axes[2].set_title('Correct Optimal Scale Predictions')
-# axes[2].set_xlabel('Number of Training Points (n_train)')
-# axes[2].set_ylabel('Number of matches')
-# # axes[2].grid(True)
+axes[1, 1].plot(n_train_values, optimal_scale_errors, marker='o')
+axes[1, 1].set_title('Avg Error in Optimal Scale Prediction')
+axes[1, 1].set_xlabel('Number of Training Points (n_train)')
+axes[1, 1].set_ylabel('Avg Error')
 
-# plt.savefig('figures/poly2_model_optimal_scale_match_sujaan.png')
-# plt.show()
+plt.tight_layout()
+#plt.savefig('figures/poly2_model_optimal_scale_analysis_jason.png')
+plt.show()

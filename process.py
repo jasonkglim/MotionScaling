@@ -426,6 +426,7 @@ if __name__ == "__main__":
     # plot_all_heatmaps(metric_df, data_folder)
     plot_key_heatmaps(metric_df, data_folder)
     
+    
     # Compute overall stats
     tp = (metric_df['throughput'].min(), metric_df['throughput'].max(), metric_df['throughput'].mean())
     mt = (metric_df['avg_movement_time'].min(), metric_df['avg_movement_time'].max(), metric_df['avg_movement_time'].mean())
