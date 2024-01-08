@@ -30,8 +30,6 @@ for filepath in glob.glob(file_pattern):
     data["performance"] = 10*data['throughput'] - data['avg_osd'] - data['avg_target_error']
     Y = data["performance"]
 
-
-
     # Total number of data points
     n = len(data)
 
