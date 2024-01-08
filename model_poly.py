@@ -11,7 +11,7 @@ from utils import stratified_sample, annotate, even_train_split, annotate_extrem
 
 
 # Read in data file as a pandas dataframe
-data = pd.read_csv('data_files/user_jason/metric_df.csv')
+data = pd.read_csv('data_files/user_lizzie1/metric_df.csv')
 
 # Extract full dataset input 'latency' and 'scale' as X, and 'throughput' as Y.
 X = data[['latency', 'scale']]
@@ -30,7 +30,7 @@ optimal_scale_errors = []
 # n_train_values = []
 
 # Repeat the process for n_train = 1 to n - 2
-n_train_values = [25] #range(2, n-2) # [4, 8, 12, 16, 20, 24]
+n_train_values = range(2, n-2) # [4, 8, 12, 16, 20, 24]
 for n_train in n_train_values:
 	# Split the data into training and test sets
 	# train_set, test_set = stratified_sample(data, n_train)
@@ -65,7 +65,7 @@ for n_train in n_train_values:
 
 	# Predict over dense inputs
 	latency_range = np.array(data['latency'].unique())# np.arange(0.0, 0.76, 0.01)
-	scale_range = np.arange(0.075, 1.025, 0.025)
+	scale_range = np.arange(0.0, 1.225, 0.025)
 
 	# Create a meshgrid from the input ranges
 	latency_grid, scale_grid = np.meshgrid(latency_range, scale_range)
@@ -104,7 +104,7 @@ for n_train in n_train_values:
 	optimal_scale_errors.append(scale_error)
 
 	# Plotting with the annotate function to highlight training points
-	cond = False # n_train in [25]
+	cond = n_train in [5, 10, 15, 20]
 	if cond:
 		fig, ax = plt.subplots(1, 3, figsize=(18, 8))
 
