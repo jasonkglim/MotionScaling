@@ -19,7 +19,8 @@ all_results = {}
 for filepath in glob.glob(file_pattern):
     # print(filepath)
     # print(filepath.split('/'))
-    user_name = filepath.split('/')[1]
+    #user_name = filepath.split('/')[1]
+    user_name = filepath.split('\\')[1]
     print(f"Processing {filepath} dataset...")
 
     # Read in data file as a pandas dataframe
@@ -42,14 +43,16 @@ for filepath in glob.glob(file_pattern):
     optimal_match_rate = []
     optimal_scale_errors = []
 
-    for n_train in range(2, n-2):
+    for n_train in range(n-1, n-2):
         # Split, train and predict as in the original script
         X_train, X_test, Y_train, Y_test = even_train_split(data, n_train, y_metric="performance")
+        print(X_train)
         # X_train, X_test, Y_train, Y_test = train_test_split(X, Y, train_size=n_train/n)
         poly = PolynomialFeatures(degree=2)
         X_train_poly = poly.fit_transform(X_train)
         X_test_poly = poly.transform(X_test)
         model = LinearRegression()
+        print(X_train_poly)
         model.fit(X_train_poly, Y_train)
 
         # Predict and evaluate on test set

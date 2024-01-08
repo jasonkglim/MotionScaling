@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Stratified sampling for smarter training set split
 def stratified_sample(data, n_train):
@@ -38,9 +39,16 @@ def annotate(ax, data, points, color='red'):
         # Find the position of the training point in the heatmap
         row_idx = data.index.get_loc(row['latency'])  # Adjusted for correct key
         col_idx = data.columns.get_loc(row['scale'])  # Adjusted for correct key
+
+        circle_center_x = col_idx + 0.5  # X coordinate of the circle's center
+        circle_center_y = row_idx + 0.5  # Y coordinate of the circle's center
+        radius = 0.4  # Set the radius of the circle
+
+        circle = plt.Circle((circle_center_x, circle_center_y), radius, fill=False, edgecolor=color, lw=3)
+        ax.add_patch(circle)
         
-        # Add a rectangle around the corresponding cell in the heatmap
-        ax.add_patch(plt.Rectangle((col_idx, row_idx), 1, 1, fill=False, edgecolor=color, lw=3))
+        # # Add a rectangle around the corresponding cell in the heatmap
+        # ax.add_patch(plt.Rectangle((col_idx, row_idx), 1, 1, fill=False, edgecolor=color, lw=3))
 
 
 # Picks training points evenly distributed across input domain
@@ -76,3 +84,54 @@ def annotate_extrema(data, ax, extrema_type='max'):
         color = 'orange'
     for i, max_col in enumerate(extrema_index):
         ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
+
+# Visualize model results by plotting heatmaps for original data and predictions
+def model_heatmaps(data, dense_df, X_train, user, metric):
+    fig, ax = plt.subplots(1, 3, figsize=(18, 8))
+    fig.suptitle(f"Model Results for {user} for {metric} metric, using {len(X_train)} training points")
+    # Original data heatmap with all points highlighted (now all are training points)
+    original_data = data.pivot(
+        index='latency', columns='scale', values='performance'
+    )
+    sns.heatmap(original_data, cmap='YlGnBu', ax=ax[0], annot=True)
+    annotate(ax[0], original_data, X_train, color='green')
+    ax[0].set_title('Original Data')
+    ax[0].set_xlabel('Scale')
+    ax[0].set_ylabel('Latency')
+    annotate_extrema(original_data.values, ax[0])
+
+    # Full predicted data heatmap (prediction on the entire dataset)
+    predicted_data = data.pivot(
+        index='latency', columns='scale', values='Y_pred'
+    )
+    sns.heatmap(predicted_data, cmap='YlGnBu', ax=ax[1], annot=True)
+    annotate(ax[1], predicted_data, X_train, color='green')
+    ax[1].set_title('Predicted Data')
+    ax[1].set_xlabel('Scale')
+    ax[1].set_ylabel('Latency')
+    annotate_extrema(predicted_data.values, ax[1])
+
+    dense_pred_data = dense_df.pivot(
+        index='latency', columns='scale', values='Y_pred_dense'
+    )
+    sns.heatmap(dense_pred_data, cmap='YlGnBu', ax=ax[2])
+    # annotate(ax[1], dense_pred_data, X_train, color='green')
+    ax[2].set_title('Predicted Data over Dense Input')
+    ax[2].set_xlabel('Scale')
+    ax[2].set_ylabel('Latency')
+    annotate_extrema(dense_pred_data.values, ax[2])
+
+    # # Plot residuals
+    # data["residual"] = np.abs(data["performance"] - data["Y_pred"])
+    # residual = data.pivot(
+    # 	index='latency', columns='scale', values='residual'
+    # )
+    # sns.heatmap(residual, cmap='YlGnBu', ax=ax[2], annot=True)
+    # annotate(ax[2], residual, X_train, color='green')
+    # ax[2].set_title('Residuals')
+    # ax[2].set_xlabel('Scale')
+    # ax[2].set_ylabel('Latency')
+    # annotate_extrema(residual.values, ax[2], 'min')
+
+    plt.tight_layout()
+    plt.show()

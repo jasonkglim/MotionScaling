@@ -30,7 +30,7 @@ optimal_scale_errors = []
 # n_train_values = []
 
 # Repeat the process for n_train = 1 to n - 2
-n_train_values = range(2, n-2) # [4, 8, 12, 16, 20, 24]
+n_train_values = range(n-3, n-2) # [4, 8, 12, 16, 20, 24]
 for n_train in n_train_values:
 	# Split the data into training and test sets
 	# train_set, test_set = stratified_sample(data, n_train)
@@ -44,13 +44,15 @@ for n_train in n_train_values:
 	# print("\ntest\n", X_test)
 	# Perform polynomial regression
 	poly = PolynomialFeatures(degree=2)
-	X_train_poly = poly.fit_transform(X_train)
-	X_poly = poly.transform(X)
-	X_test_poly = poly.transform(X_test)
+	#print(X_train)
+	X_train_poly = poly.fit_transform(X_train.values)
+	X_poly = poly.transform(X.values)
+	X_test_poly = poly.transform(X_test.values)
 
 	# Train model on training set
 	model = LinearRegression()
 	model.fit(X_train_poly, Y_train)
+	#print(X_train_poly)
 
 	# evaluate model accuracy on the test set
 	Y_test_pred = model.predict(X_test_poly)
@@ -84,9 +86,9 @@ for n_train in n_train_values:
 	optimal_scale_dense = dense_df.loc[dense_df.groupby('latency')['Y_pred_dense'].idxmax()][['latency', 'scale']]
 	optimal_scale_ref = data.loc[data.groupby('latency')['performance'].idxmax()][['latency', 'scale']]
 	optimal_scale_pred = data.loc[data.groupby('latency')['Y_pred'].idxmax()][['latency', 'scale']]
-	print(optimal_scale_ref)
-	print(optimal_scale_pred)
-	print(optimal_scale_dense)
+	# print(optimal_scale_ref)
+	# print(optimal_scale_pred)
+	# print(optimal_scale_dense)
 
 	# Merge the results on 'latency'
 	merged_ref_pred = pd.merge(optimal_scale_ref, optimal_scale_pred, 

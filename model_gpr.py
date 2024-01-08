@@ -18,7 +18,7 @@ file_pattern = "data_files/user_*/metric_df.csv"
 all_datasets = {}
 
 # Loop through each file that matches the file pattern
-for filepath in glob.glob(file_pattern):
+for filepath in list(glob.glob(file_pattern))[:1]:
     print(f"Reading in {filepath}...")
 
     # Read in data file as a pandas dataframe
@@ -46,7 +46,7 @@ for filepath in glob.glob(file_pattern):
         #print(X_test)
 
         # Define the Gaussian Process kernel
-        kernel = C(1.0, (1e-3, 1e3)) * RBF([1.0, 1.0], (1e-2, 1e2))
+        kernel = C(1.0, (1e-3, 1e4)) * RBF([1.0, 1.0], (1e-2, 1e4))
 
         # Initialize the Gaussian Process Regressor with the chosen kernel
         gp_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, random_state=42)
@@ -78,12 +78,12 @@ for filepath in glob.glob(file_pattern):
         full_mse_score = mean_squared_error(Y, Y_full_pred)
         full_mse_scores.append(full_mse_score)
 
-        # Store results from this dataset
-        all_results[filepath] = {
-            'n_train_values': list(n_train_values),
-            'full_mse_scores': full_mse_scores,
-            'mse_scores': mse_scores
-        }
+        # # Store results from this dataset
+        # all_results[filepath] = {
+        #     'n_train_values': list(n_train_values),
+        #     'full_mse_scores': full_mse_scores,
+        #     'mse_scores': mse_scores
+        # }
 
         # # Reshape the predictions and uncertainties to match the grid shape
         # y_pred = y_pred.reshape(latency_grid.shape)
@@ -137,24 +137,24 @@ for filepath in glob.glob(file_pattern):
         # # plt.savefig('figures/gpr_results.png')
         # plt.show()
 
-# Plotting the results for all datasets
-fig, axes = plt.subplots(2, 1, figsize=(12, 12))
-for filepath, results in all_results.items():
-    user_name = filepath.split('/')[1]  # Extract user name from the filepath
-    axes[0].plot(results['n_train_values'], results['full_mse_scores'], marker='o', label=user_name)
-    axes[1].plot(results['n_train_values'], results['mse_scores'], marker='o', label=user_name)
+# # Plotting the results for all datasets
+# fig, axes = plt.subplots(2, 1, figsize=(12, 12))
+# for filepath, results in all_results.items():
+#     user_name = filepath.split('/')[1]  # Extract user name from the filepath
+#     axes[0].plot(results['n_train_values'], results['full_mse_scores'], marker='o', label=user_name)
+#     axes[1].plot(results['n_train_values'], results['mse_scores'], marker='o', label=user_name)
 
-axes[0].set_title('MSE on whole dataset for all users')
-axes[0].set_xlabel('Number of Training Points (n_train)')
-axes[0].set_ylabel('Model Accuracy (R^2 Score)')
-axes[0].grid(True)
-axes[0].legend()
+# axes[0].set_title('MSE on whole dataset for all users')
+# axes[0].set_xlabel('Number of Training Points (n_train)')
+# axes[0].set_ylabel('Model Accuracy (R^2 Score)')
+# axes[0].grid(True)
+# axes[0].legend()
 
-axes[1].set_title('MSE on test set for all users')
-axes[1].set_xlabel('Number of Training Points (n_train)')
-axes[1].set_ylabel('Model Accuracy (MSE Score)')
-axes[1].grid(True)
-axes[1].legend()
+# axes[1].set_title('MSE on test set for all users')
+# axes[1].set_xlabel('Number of Training Points (n_train)')
+# axes[1].set_ylabel('Model Accuracy (MSE Score)')
+# axes[1].grid(True)
+# axes[1].legend()
 
-plt.savefig('figures/gpr_model_acc_vs_n_train_evensplit_all_users.png')
-plt.show()
+# plt.savefig('figures/gpr_model_acc_vs_n_train_evensplit_all_users.png')
+# plt.show()

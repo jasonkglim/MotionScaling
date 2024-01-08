@@ -2,7 +2,7 @@
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, RationalQuadratic
 
 # Object for model results
 
@@ -27,16 +27,24 @@ def PolyRegression(train_inputs, train_outputs, test_inputs, degree = 2):
 
 
 ## Gaussian Process Regression
-def GPRegression(train_inputs, train_outputs, test_inputs, degree = 2):
+def GPRegression(train_inputs, train_outputs, test_inputs):
 
 	# Define the Gaussian Process kernel
-	kernel = C(1.0, (1e-3, 1e3)) * RBF([1.0, 1.0], (1e-2, 1e2))
+	kernel = ConstantKernel() * RBF() # Default RBF
+	# kernel = ConstantKernel() * RationalQuadratic() # Rational Quadratic
 
 	# Initialize the Gaussian Process Regressor with the chosen kernel
 	gp_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, random_state=42)
 
 	# Fit the model to the training data
-	gp_model.fit(X_train, Y_train)
+	gp_model.fit(train_inputs, train_outputs)
+
+	# Get mean and std of predictive distributions
+	pred_mean, pred_std = gp_model.predict(test_inputs, return_std=True)
+
+	return pred_mean, pred_std
+
+
 
 
 
