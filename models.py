@@ -1,29 +1,42 @@
 ### Contains functions for different modeling approaches
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 
 # Object for model results
 
 
 ## Polynomail Regression
-def PolyRegression(X, X_dense, X_train, Y_train, degree = 2):
+def PolyRegression(train_inputs, train_outputs, test_inputs, degree = 2):
 
 	# Feature transformation
 	poly = PolynomialFeatures(degree=degree)
-	X_poly = poly.fit_transform(X)
-	
+	train_inputs_poly = poly.fit_transform(train_inputs)
+	test_inputs_poly = poly.transform(test_inputs)
+
 	# Train model on training set
 	model = LinearRegression()
-	model.fit(poly.transform(X_train), Y_train)
+	model.fit(train_inputs_poly, train_outputs)
 
-	# Predict over original inputs
-	Y_pred = model.predict(X_poly)
-
-	# Predict over dense inputs
-	Y_pred_dense = model.predict(poly.transform(X_dense))
+	# Predict over test inputs
+	Y_pred = model.predict(test_inputs_poly)
 
 	# Return predictions
-	return {'Y_pred': Y_pred, 'Y_pred_dense': Y_pred_dense}
+	return Y_pred
+
+
+## Gaussian Process Regression
+def GPRegression(train_inputs, train_outputs, test_inputs, degree = 2):
+
+	# Define the Gaussian Process kernel
+	kernel = C(1.0, (1e-3, 1e3)) * RBF([1.0, 1.0], (1e-2, 1e2))
+
+	# Initialize the Gaussian Process Regressor with the chosen kernel
+	gp_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, random_state=42)
+
+	# Fit the model to the training data
+	gp_model.fit(X_train, Y_train)
 
 
 

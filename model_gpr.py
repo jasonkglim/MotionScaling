@@ -15,15 +15,14 @@ import glob
 file_pattern = "data_files/user_*/metric_df.csv"
 
 # Initialize a dictionary to store results from each dataset
-all_results = {}
+all_datasets = {}
 
 # Loop through each file that matches the file pattern
 for filepath in glob.glob(file_pattern):
-    print(f"Processing {filepath}...")
+    print(f"Reading in {filepath}...")
 
     # Read in data file as a pandas dataframe
     data = pd.read_csv(filepath)
-
 
     # Extracting features and target variable
     X = data[['latency', 'scale']]
