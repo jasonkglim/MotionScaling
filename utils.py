@@ -52,10 +52,10 @@ def annotate(ax, data, points, color='red'):
 
 
 # Picks training points evenly distributed across input domain
-def even_train_split(data, n_train, y_metric):
+def even_train_split(data, n_train):
     # Ensure that n_train is within the valid range
-    if not 2 <= n_train <= len(data) - 2:
-        raise ValueError("n_train must be between 2 and n-2")
+    if not 1 <= n_train <= len(data) - 2:
+        raise ValueError("n_train must be between 1 and n-2")
 
     # Sort data based on 'latency' and 'scale' to ensure even distribution
     data_sorted = data.sort_values(by=['latency', 'scale'])
@@ -67,11 +67,7 @@ def even_train_split(data, n_train, y_metric):
     # The rest of the data will be used as the test set
     test_data = data_sorted.drop(train_data.index)
 
-    # Splitting the datasets into X (inputs) and y (output)
-    X_train, y_train = train_data[['latency', 'scale']], train_data[y_metric]
-    X_test, y_test = test_data[['latency', 'scale']], test_data[y_metric]
-
-    return X_train, X_test, y_train, y_test
+    return train_data, test_data
 
 
 # Function to add red border to maximum value in each row
