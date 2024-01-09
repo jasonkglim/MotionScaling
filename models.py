@@ -27,10 +27,10 @@ def PolyRegression(train_inputs, train_outputs, test_inputs, degree = 2):
 
 
 ## Gaussian Process Regression
-def GPRegression(train_inputs, train_outputs, test_inputs):
+def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
 
 	# Define the Gaussian Process kernel
-	kernel = ConstantKernel() * RBF() # Default RBF
+	# kernel = ConstantKernel() * RBF() # Default RBF
 	# kernel = ConstantKernel() * RationalQuadratic() # Rational Quadratic
 
 	# Initialize the Gaussian Process Regressor with the chosen kernel
