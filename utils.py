@@ -82,7 +82,7 @@ def annotate_extrema(data, ax, extrema_type='max'):
         ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
 
 # Visualize model results by plotting heatmaps for original data and predictions
-def model_heatmaps(data, dense_df, X_train, user, metric, model_type):
+def model_heatmaps(data, dense_df, X_train, user, metric, model_type=""):
     fig, ax = plt.subplots(1, 3, figsize=(18, 8))
     fig.suptitle(f"Model Results for {user} for {metric} metric, using {len(X_train)} training points")
     # Original data heatmap with all points highlighted (now all are training points)
@@ -130,6 +130,6 @@ def model_heatmaps(data, dense_df, X_train, user, metric, model_type):
     # annotate_extrema(residual.values, ax[2], 'min')
 
     plt.tight_layout()
-    filepath = f"data_files/{user}/model_heatmaps/modeltype_{model_type}_metric_{metric}_ntrain_{len(X_train)}.png"
-    plt.savefig(f"data_files/{user}/")
+    # filepath = f"data_files/{user}/model_heatmaps/modeltype_{model_type}_metric_{metric}_ntrain_{len(X_train)}.png"
+    # plt.savefig(f"data_files/{user}/")
     plt.show()
