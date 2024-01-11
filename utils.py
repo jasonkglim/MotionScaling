@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 # Stratified sampling for smarter training set split
 def stratified_sample(data, n_train):
@@ -130,6 +131,14 @@ def model_heatmaps(data, dense_df, X_train, user, metric, model_type=""):
     # annotate_extrema(residual.values, ax[2], 'min')
 
     plt.tight_layout()
-    # filepath = f"data_files/{user}/model_heatmaps/modeltype_{model_type}_metric_{metric}_ntrain_{len(X_train)}.png"
-    # plt.savefig(f"data_files/{user}/")
-    plt.show()
+    folder = f"data_files/{user}/model_heatmaps/{metric}/{model_type}"
+    if not os.path.exists(f"data_files/{user}/model_heatmaps"):
+        os.mkdir(f"data_files/{user}/model_heatmaps")
+    if not os.path.exists(f"data_files/{user}/model_heatmaps/{metric}"):
+        os.mkdir(f"data_files/{user}/model_heatmaps/{metric}")
+    if not os.path.exists(f"data_files/{user}/model_heatmaps/{metric}/{model_type}"):
+        os.mkdir(f"data_files/{user}/model_heatmaps/{metric}/{model_type}")
+    filepath = f"data_files/{user}/model_heatmaps/{metric}/{model_type}/ntrain_{len(X_train)}.png"
+    plt.savefig(filepath)
+    plt.close()
+    # plt.show()
