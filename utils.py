@@ -85,7 +85,7 @@ def annotate_extrema(data, ax, extrema_type='max'):
 # Visualize model results by plotting heatmaps for original data and predictions
 def model_heatmaps(data, dense_df, X_train, user, metric, model_type=""):
     fig, ax = plt.subplots(1, 3, figsize=(18, 8))
-    fig.suptitle(f"Model Results for {user} for {metric} metric, using {len(X_train)} training points")
+    fig.suptitle(f"{model_type} Model Results for {user} for {metric} metric, using {len(X_train)} training points")
     # Original data heatmap with all points highlighted (now all are training points)
     original_data = data.pivot(
         index='latency', columns='scale', values=metric
@@ -140,5 +140,5 @@ def model_heatmaps(data, dense_df, X_train, user, metric, model_type=""):
         os.mkdir(f"data_files/{user}/model_heatmaps/{metric}/{model_type}")
     filepath = f"data_files/{user}/model_heatmaps/{metric}/{model_type}/ntrain_{len(X_train)}.png"
     plt.savefig(filepath)
+    plt.show()
     plt.close()
-    # plt.show()
