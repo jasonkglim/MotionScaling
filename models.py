@@ -23,7 +23,7 @@ def PolyRegression(train_inputs, train_outputs, test_inputs, degree = 2):
 	Y_pred = model.predict(test_inputs_poly)
 
 	# Return predictions
-	return Y_pred
+	return Y_pred, model.get_params()
 
 
 ## Gaussian Process Regression
@@ -42,7 +42,7 @@ def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
 	# Get mean and std of predictive distributions
 	pred_mean, pred_std = gp_model.predict(test_inputs, return_std=True)
 
-	return pred_mean, pred_std
+	return pred_mean, pred_std, gp_model.kernel_
 
 
 
