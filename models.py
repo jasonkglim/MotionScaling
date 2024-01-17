@@ -22,8 +22,10 @@ def PolyRegression(train_inputs, train_outputs, test_inputs, degree = 2):
 	# Predict over test inputs
 	Y_pred = model.predict(test_inputs_poly)
 
+	params = f"Coef: {model.coef_[1:]}, Intercept: {model.intercept_}"
+
 	# Return predictions
-	return Y_pred, model.get_params()
+	return Y_pred, params
 
 
 ## Gaussian Process Regression
