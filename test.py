@@ -435,27 +435,34 @@ osd = (metric_df['avg_osd'].min(), metric_df['avg_osd'].max(), metric_df['avg_os
 
 
 # Define the range for weights
-w_min, w_max, step_size = 0.1, 5, 0.1
+w_min, w_max, step_size = 0.0, 6, 0.05
 weights = np.arange(w_min, w_max + step_size, step_size)
 
 # Prepare the plot
 fig, ax = plt.subplots(figsize=(6, 4))
 fig.suptitle("Weighted Performance vs. Latency and Scale")
 
+first_cycle = True
+
 # Animation update function
 def update(weight):
+    global first_cycle
     ax.clear()
     metric_df["performance"] = (10*metric_df["throughput"] - 
                                 weight * (metric_df["avg_osd"] + metric_df["avg_target_error"]))
     heatmap = metric_df.pivot(index='latency', columns='scale', values='performance')
-    sns.heatmap(heatmap, ax=ax, cmap="YlGnBu", annot=False, fmt='.3g', cbar=False)
-    ax.set_title(f'w = {weight}')
+    if first_cycle:
+        sns.heatmap(heatmap, ax=ax, cmap="YlGnBu", annot=False, fmt='.3g', cbar=True)
+        first_cycle = False
+    else:
+        sns.heatmap(heatmap, ax=ax, cmap="YlGnBu", annot=False, fmt='.3g', cbar=False)
+    ax.set_title(f'w = {weight:.2f}')
     annotate_extrema(heatmap.values, ax, extrema_type='max')
 
 # Create the animation
-ani = FuncAnimation(fig, update, frames=weights, repeat=False)
+ani = FuncAnimation(fig, update, frames=weights, interval=30, blit=True, repeat=False)
 
 # Save the animation
-# ani.save(f"weighted_performance_metric_animation.mp4", writer='pillow', fps=10)
+ani.save(f"figures/WP_anim/weighted_performance_metric_animation_{user}.gif", writer='pillow', fps=10)
 
-plt.show()
+# plt.show()
