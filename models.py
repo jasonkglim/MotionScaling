@@ -66,9 +66,14 @@ class BayesRegression:
 
 	# Computes poseterior parameters from training data and prior 
 	def fit(self):
-		A = ((self.X @ self.X.T) / self.noise**2) + np.linalg.inv(self.prior_covar)
+		A = (self.X @ self.X.T / self.noise**2
+	   		 + np.linalg.inv(self.prior_covar))
 		self.posterior_covar = np.linalg.inv(A)
-		self.posterior_mean = self.posterior_covar @ ((self.X @ self.y / self.noise**2) + np.linalg.inv(self.prior_covar) @ self.prior_mean)
+		self.posterior_mean = (self.posterior_covar
+						 	   @ (self.X @ self.y / self.noise**2
+			  					  + np.linalg.inv(self.prior_covar)
+								  @ self.prior_mean))
+
 		return self.posterior_mean, self.posterior_covar
 	
 	# Compute mean and covariance of predictive distribution
