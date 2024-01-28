@@ -3,6 +3,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, RationalQuadratic
+import numpy as np
 
 # Object for model results
 
@@ -47,6 +48,35 @@ def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
 	return pred_mean, pred_std, gp_model.kernel_
 
 
+## Bayesian Linear Regression
+class BayesRegression:
+	def __init__(self, train_input, train_output, noise=0):
+		self.X = np.array(train_input)
+		self.y = np.array(train_output)
+		self.input_dim = self.X.shape[0]
+		self.num_examples = self.X.shape[1]
+		self.prior_mean = np.zeros((1, self.input_dim))
+		self.prior_covar = np.identiy(self.num_examples)
+		self.noise = noise # Defines the variance of gaussian observation noise
+
+	# Define custom prior for weights
+	def set_prior(self, mean, var):
+		self.prior_mean = mean
+		self.prior_covar = np.identity(self.num_examples) * var
+
+	# Computes poseterior parameters from training data and prior 
+	def fit(self):
+		A = ((self.X @ self.X.T) / self.noise**2) + np.linalg.inv(self.prior_covar)
+		self.posterior_covar = np.linalg.inv(A)
+		self.posterior_mean = self.posterior_covar @ ((self.X @ self.y / self.noise**2) + np.linalg.inv(self.prior_covar) @ self.prior_mean)
+		return self.posterior_mean, self.posterior_covar
+	
+	# Compute mean and covariance of predictive distribution
+	def predict(self, test_input):
+		test_input = np.array(test_input)
+		self.pred_mean = test_input.T @ self.posterior_mean
+		self.pred_covar = test_input.T @ self.posterior_covar @ test_input
+		return self.pred_mean, self.pred_covar
 
 
 
