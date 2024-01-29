@@ -56,7 +56,7 @@ class BayesRegression:
 		self.input_dim = self.X.shape[0]
 		self.num_examples = self.X.shape[1]
 		self.prior_mean = np.zeros((1, self.input_dim))
-		self.prior_covar = np.identiy(self.num_examples)
+		self.prior_covar = np.identity(self.num_examples)
 		self.noise = noise # Defines the variance of gaussian observation noise
 
 	# Define custom prior for weights
@@ -69,6 +69,7 @@ class BayesRegression:
 		A = (self.X @ self.X.T / self.noise**2
 	   		 + np.linalg.inv(self.prior_covar))
 		self.posterior_covar = np.linalg.inv(A)
+		print(self.posterior_covar.size)
 		self.posterior_mean = (self.posterior_covar
 						 	   @ (self.X @ self.y / self.noise**2
 			  					  + np.linalg.inv(self.prior_covar)
