@@ -52,11 +52,11 @@ def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
 class BayesRegression:
 	def __init__(self, train_input, train_output, noise=0):
 		self.X = np.array(train_input)
-		self.y = np.array(train_output)
+		self.y = np.array(train_output).reshape((-1, 1))
 		self.input_dim = self.X.shape[0]
 		self.num_examples = self.X.shape[1]
-		self.prior_mean = np.zeros((1, self.input_dim))
-		self.prior_covar = np.identity(self.num_examples)
+		self.prior_mean = np.zeros((self.input_dim, 1))
+		self.prior_covar = np.identity(self.input_dim)
 		self.noise = noise # Defines the variance of gaussian observation noise
 
 	# Define custom prior for weights
@@ -69,12 +69,18 @@ class BayesRegression:
 		A = (self.X @ self.X.T / self.noise**2
 	   		 + np.linalg.inv(self.prior_covar))
 		self.posterior_covar = np.linalg.inv(A)
-		print(self.posterior_covar.size)
+		# print(self.posterior_covar.shape)
+		# print("X ", self.X.shape)
+		# print("y ", self.y.shape)
+		# print("prior covar ", self.prior_covar.shape)
+		# print("prior mean ", self.prior_mean.shape)
 		self.posterior_mean = (self.posterior_covar
 						 	   @ (self.X @ self.y / self.noise**2
 			  					  + np.linalg.inv(self.prior_covar)
 								  @ self.prior_mean))
 
+		# print("post mean ", self.posterior_mean.shape)
+		# print("post covar ", self.posterior_covar.shape)
 		return self.posterior_mean, self.posterior_covar
 	
 	# Compute mean and covariance of predictive distribution
@@ -83,7 +89,6 @@ class BayesRegression:
 		self.pred_mean = test_input.T @ self.posterior_mean
 		self.pred_covar = test_input.T @ self.posterior_covar @ test_input
 		return self.pred_mean, self.pred_covar
-
 
 
 
