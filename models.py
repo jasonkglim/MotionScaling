@@ -61,7 +61,7 @@ class BayesRegression:
 
 	# Define custom prior for weights
 	def set_prior(self, mean, var):
-		self.prior_mean = mean
+		self.prior_mean = mean.reshape(-1, 1)
 		self.prior_covar = np.identity(self.num_examples) * var
 
 	# Computes poseterior parameters from training data and prior 
