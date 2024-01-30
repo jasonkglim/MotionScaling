@@ -62,18 +62,21 @@ class BayesRegression:
 	# Define custom prior for weights
 	def set_prior(self, mean, var):
 		self.prior_mean = mean.reshape(-1, 1)
-		self.prior_covar = np.identity(self.num_examples) * var
+		if isinstance(var, int):
+			self.prior_covar = np.identity(self.input_dim) * var
+		else: 
+			self.prior_covar = var
 
 	# Computes poseterior parameters from training data and prior 
 	def fit(self):
 		A = (self.X @ self.X.T / self.noise**2
 	   		 + np.linalg.inv(self.prior_covar))
 		self.posterior_covar = np.linalg.inv(A)
-		# print(self.posterior_covar.shape)
-		# print("X ", self.X.shape)
-		# print("y ", self.y.shape)
-		# print("prior covar ", self.prior_covar.shape)
-		# print("prior mean ", self.prior_mean.shape)
+		print(self.posterior_covar.shape)
+		print("X ", self.X.shape)
+		print("y ", self.y.shape)
+		print("prior covar ", self.prior_covar.shape)
+		print("prior mean ", self.prior_mean.shape)
 		self.posterior_mean = (self.posterior_covar
 						 	   @ (self.X @ self.y / self.noise**2
 			  					  + np.linalg.inv(self.prior_covar)
