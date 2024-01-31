@@ -92,7 +92,3 @@ class BayesRegression:
 		self.pred_mean = test_input.T @ self.posterior_mean
 		self.pred_covar = test_input.T @ self.posterior_covar @ test_input
 		return self.pred_mean, self.pred_covar
-
-
-
-
