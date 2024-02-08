@@ -1,0 +1,4 @@
+latency,scaling_factor,target distance,target width
+0.75,0.15,222,40
+0.0,0.4,222,40
+0.25,0.4,222,40

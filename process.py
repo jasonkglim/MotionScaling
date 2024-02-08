@@ -356,8 +356,8 @@ if __name__ == "__main__":
             fs = 1.0 / dt
             fs_mean = np.mean(fs)
             fs_std = np.std(fs)
-            #if fs_std > 5:
-            # print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
+#             if fs_std > 5:      # 
+            print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
 
 
             # # # Generate figure for metrics
