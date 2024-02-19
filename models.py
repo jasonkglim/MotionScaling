@@ -5,7 +5,20 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, RationalQuadratic
 import numpy as np
 
-# Object for model results
+# Object for model results, stores models of different metrics
+class PerformanceModel:
+	def __init__(self, train_inputs, train_output_dict):
+		self.train_inputs = train_inputs
+		self.train_output_dict = train_output_dict
+		self.input_dim = self.X.shape[0]
+		self.num_examples = self.X.shape[1]
+		
+
+	def train(self):
+		pass
+		
+
+
 
 
 ## Polynomail Regression
@@ -49,15 +62,14 @@ def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
 
 
 ## Bayesian Linear Regression
-class BayesRegression:
-	def __init__(self, train_input, train_output, noise=0):
-		self.X = np.array(train_input)
-		self.y = np.array(train_output).reshape((-1, 1))
-		self.input_dim = self.X.shape[0]
-		self.num_examples = self.X.shape[1]
+class BayesRegression(PerformanceModel):
+	def __init__(self, train_inputs, train_output_dict, noise=0):
+		super().__init__(train_inputs, train_output_dict)
 		self.prior_mean = np.zeros((self.input_dim, 1))
 		self.prior_covar = np.identity(self.input_dim)
 		self.noise = noise # Defines the variance of gaussian observation noise
+		self.posterior_dict = {}
+		self.prediction_dict = {}
 
 	# Define custom prior for weights
 	def set_prior(self, mean, var):
@@ -67,28 +79,41 @@ class BayesRegression:
 		else: 
 			self.prior_covar = var
 
+	def add_training_data(self, train_input, train_output_dict):
+		# TO DO: catch exceptions for bad args, change to accept dictionary
+		self.X = np.concatenate((self.X, train_input), 1)
+
+		self.y = np.concatenate((self.y, train_output), 1)
+
 	# Computes poseterior parameters from training data and prior 
 	def fit(self):
-		A = (self.X @ self.X.T / self.noise**2
-	   		 + np.linalg.inv(self.prior_covar))
-		self.posterior_covar = np.linalg.inv(A)
-		# print(self.posterior_covar.shape)
-		# print("X ", self.X.shape)
-		# print("y ", self.y.shape)
-		# print("prior covar ", self.prior_covar.shape)
-		# print("prior mean ", self.prior_mean.shape)
-		self.posterior_mean = (self.posterior_covar
-						 	   @ (self.X @ self.y / self.noise**2
-			  					  + np.linalg.inv(self.prior_covar)
-								  @ self.prior_mean))
+		for metric, outputs in self.train_output_dict.items():
+			A = (self.X @ self.X.T / self.noise**2
+				+ np.linalg.inv(self.prior_covar))
+			posterior_covar = np.linalg.inv(A)
+			# print(self.posterior_covar.shape)
+			# print("X ", self.X.shape)
+			# print("y ", self.y.shape)
+			# print("prior covar ", self.prior_covar.shape)
+			# print("prior mean ", self.prior_mean.shape)
+			posterior_mean = (self.posterior_covar
+								@ (self.X @ self.y / self.noise**2
+									+ np.linalg.inv(self.prior_covar)
+									@ self.prior_mean))
+			self.posterior_dict[metric] = (posterior_mean, posterior_covar)
 
-		# print("post mean ", self.posterior_mean.shape)
-		# print("post covar ", self.posterior_covar.shape)
-		return self.posterior_mean, self.posterior_covar
+			# print("post mean ", self.posterior_mean.shape)
+			# print("post covar ", self.posterior_covar.shape)
+		return self.posterior_dict
 	
 	# Compute mean and covariance of predictive distribution
 	def predict(self, test_input):
-		test_input = np.array(test_input)
-		self.pred_mean = test_input.T @ self.posterior_mean
-		self.pred_covar = test_input.T @ self.posterior_covar @ test_input
-		return self.pred_mean, self.pred_covar
+		for metric in self.train_output_dict.keys():
+			posterior_mean = self.posterior_dict[metric][0]
+			posterior_covar = self.posterior_dict[metric][1]
+			test_input = np.array(test_input)
+			pred_mean = test_input.T @ posterior_mean
+			pred_covar = test_input.T @ posterior_covar @ test_input
+			self.prediction_dict[metric] = (pred_mean, pred_covar)
+			
+		return self.prediction_dict
