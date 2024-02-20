@@ -7,11 +7,15 @@ import numpy as np
 
 # Object for model results, stores models of different metrics
 class PerformanceModel:
-	def __init__(self, train_inputs, train_output_dict):
-		self.train_inputs = train_inputs
-		self.train_output_dict = train_output_dict
-		self.input_dim = self.X.shape[0]
-		self.num_examples = self.X.shape[1]
+	def __init__(self, train_inputs=None, train_output_dict=None):
+		# TO DO: catch exception of bad args (given only inputs)
+		self.X = train_inputs
+		self.y_dict = {}
+		if train_inputs != None:
+			self.input_dim = self.X.shape[0]
+			self.num_examples = self.X.shape[1]
+			for metric, data in train_output_dict.items():
+				self.y_dict[metric] = np.array(data).reshape((-1, 1))
 		
 
 	def train(self):
@@ -63,10 +67,11 @@ def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
 
 ## Bayesian Linear Regression
 class BayesRegression(PerformanceModel):
-	def __init__(self, train_inputs, train_output_dict, noise=0):
+	def __init__(self, train_inputs=None, train_output_dict=None, noise=0):
 		super().__init__(train_inputs, train_output_dict)
-		self.prior_mean = np.zeros((self.input_dim, 1))
-		self.prior_covar = np.identity(self.input_dim)
+		if self.X != None:
+			self.prior_mean = np.zeros((self.input_dim, 1))
+			self.prior_covar = np.identity(self.input_dim)
 		self.noise = noise # Defines the variance of gaussian observation noise
 		self.posterior_dict = {}
 		self.prediction_dict = {}
@@ -79,15 +84,20 @@ class BayesRegression(PerformanceModel):
 		else: 
 			self.prior_covar = var
 
-	def add_training_data(self, train_input, train_output_dict):
+	def add_training_data(self, train_inputs, train_output_dict):
 		# TO DO: catch exceptions for bad args, change to accept dictionary
-		self.X = np.concatenate((self.X, train_input), 1)
-
-		self.y = np.concatenate((self.y, train_output), 1)
+		if self.X == None: # if uninitialized
+			self.X = train_inputs
+			self.y_dict = train_output_dict
+		else:
+			self.X = np.concatenate((self.X, train_inputs), 1)
+			for metric, data in train_output_dict.items():
+				data = np.array(data).reshape((-1, 1)) # convert to np column vector
+				self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 1)
 
 	# Computes poseterior parameters from training data and prior 
-	def fit(self):
-		for metric, outputs in self.train_output_dict.items():
+	def train(self):
+		for metric, y in self.y_dict.items():
 			A = (self.X @ self.X.T / self.noise**2
 				+ np.linalg.inv(self.prior_covar))
 			posterior_covar = np.linalg.inv(A)
@@ -97,7 +107,7 @@ class BayesRegression(PerformanceModel):
 			# print("prior covar ", self.prior_covar.shape)
 			# print("prior mean ", self.prior_mean.shape)
 			posterior_mean = (self.posterior_covar
-								@ (self.X @ self.y / self.noise**2
+								@ (self.X @ y / self.noise**2
 									+ np.linalg.inv(self.prior_covar)
 									@ self.prior_mean))
 			self.posterior_dict[metric] = (posterior_mean, posterior_covar)
@@ -108,12 +118,10 @@ class BayesRegression(PerformanceModel):
 	
 	# Compute mean and covariance of predictive distribution
 	def predict(self, test_input):
-		for metric in self.train_output_dict.keys():
-			posterior_mean = self.posterior_dict[metric][0]
-			posterior_covar = self.posterior_dict[metric][1]
+		for metric, (posterior_mean, posterior_covar) in self.posterior_dict_dict.keys():
 			test_input = np.array(test_input)
 			pred_mean = test_input.T @ posterior_mean
 			pred_covar = test_input.T @ posterior_covar @ test_input
 			self.prediction_dict[metric] = (pred_mean, pred_covar)
-			
+
 		return self.prediction_dict
