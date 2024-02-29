@@ -11,6 +11,9 @@ class ScalingPolicy:
 	def random_scale(self):
 		return random.choice(self.scale_domain)
 
+        def optimal_scale(self, metric):
+                pass
+
 	# adds new model data
 	def update(self, model):
 		pass
