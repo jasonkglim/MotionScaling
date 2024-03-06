@@ -802,7 +802,7 @@ class InstrumentTracker:
                 sparse_df.reset_index(inplace=True)
 
                 # Plotting
-                fig, axes = plt.subplots(3, 2)
+                fig, axes = plt.subplots(3, 2, figsize=(12, 6))
 
                 # Throughput Heatmap
                 sparse_throughput_heatmap = sparse_df.pivot(index="latency", columns="scale", values="throughput")

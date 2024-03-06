@@ -32,14 +32,18 @@ class BalancedScalingPolicy(ScalingPolicy):
 	def __init__(self, scale_domain):
 		super().__init__(scale_domain)
 
-	def get_scale(self, prediction_df):
+	def get_scale(self, prediction_df, metric):
 		if random.random() < 0.5:
-			return self.optimal_scale(prediction_df)
+			return self.optimal_scale(prediction_df, metric)
 		else:
-			return self.max_unc_scale(prediction_df)
+			return self.max_unc_scale(prediction_df, metric)
 		
 	def optimal_scale(self, prediction_df, metric):
-		optimal_scale = prediction_df.loc[prediction_df.groupby('latency')[metric].idxmax()][['latency', 'scale']]
+		optimal_scale = prediction_df.loc[prediction_df.groupby('latency')[metric].idxmax()]['scale'].values[0]
 		return optimal_scale
+	
+	def max_unc_scale(self, prediction_df, metric):
+		s =  prediction_df.loc[prediction_df.groupby('latency')[f"{metric}_var"].idxmax()]['scale'].values[0]
+		return s
 	
 

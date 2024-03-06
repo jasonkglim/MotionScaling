@@ -24,6 +24,7 @@ def visualize_controller(obs_df, prediction_df):
 
 	# Update sparse_df with data from obs_df
 	obs_df_copy = obs_df.copy()
+	obs_df_copy = obs_df_copy.groupby(['latency', 'scale']).mean().reset_index()
 	sparse_df.set_index(['latency', 'scale'], inplace=True)
 	obs_df_copy.set_index(['latency', 'scale'], inplace=True)
 	sparse_df.update(obs_df_copy)
@@ -124,8 +125,8 @@ scale_domain = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
 latency_domain = [0.25]
 metric_list = ["throughput", "total_error"] # metrics to be tracked and modeled by PerformanceModel
 obs_df = pd.DataFrame()
-model = Bala()
-policy = ScalingPolicy(scale_domain=scale_domain)
+model = BayesRegression()
+policy = BalancedScalingPolicy(scale_domain=scale_domain)
 prediction_df = player_df[["latency", "scale"]].copy()
 
 # Control loop:
@@ -162,7 +163,7 @@ for input_latency in full_latency_list:
 	# # Visualize
 	visualize_controller(obs_df, prediction_df)
 
-	control_scale = policy.optimal_scale(prediction_df, metric="throughput")
+	control_scale = policy.get_scale(prediction_df, metric="throughput")
 	
 
 
