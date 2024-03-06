@@ -127,12 +127,18 @@ class BayesRegression(PerformanceModel):
 		return self.posterior_dict
 	
 	# Compute mean and covariance of predictive distribution
-	def predict(self, test_input, prediction_df):
+	def predict(self, test_input, prediction_df=None):
+		'''
+		Return mean and covar for predicted values over test_input
+		args:
+			test_input: array: each column represents an input, should be size input_dim x num_inputs
+		'''
 		for metric, (posterior_mean, posterior_covar) in self.posterior_dict.items():
 			test_input = np.array(test_input)
-			pred_mean = test_input @ posterior_mean
-			pred_covar = test_input @ posterior_covar @ test_input.T
+			pred_mean = test_input.T @ posterior_mean
+			pred_covar = test_input.T @ posterior_covar @ test_input
 			self.prediction_dict[metric] = (pred_mean, pred_covar)
-			prediction_df[metric] = pred_mean
+			if prediction_df is not None:
+				prediction_df[metric] = pred_mean
 
 		return self.prediction_dict

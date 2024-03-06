@@ -8,11 +8,11 @@ class ScalingPolicy:
 		self.scale_domain = scale_domain
 		return
 	
-	def random_scale(self):
-		return random.choice(self.scale_domain)
+	def random_scale(self, visited):
+		return random.choice([s for s in self.scale_domain if s not in visited])
 
-        def optimal_scale(self, metric):
-                pass
+	def optimal_scale(self, metric):
+			pass
 
 	# adds new model data
 	def update(self, model):
