@@ -97,7 +97,7 @@ class BayesRegression(PerformanceModel):
 			self.y_dict[metric] = np.array(data).reshape((-1, 1))
 		self.input_dim = self.X.shape[0]
 		self.num_examples = self.X.shape[1]
-		self.set_prior(0, 1e3)
+		self.set_prior(0, 1e3) # TO DO change this!
 		# else:
 		# 	self.X = np.concatenate((self.X, train_inputs), 1)
 		# 	for metric, data in train_output_dict.items():
@@ -140,6 +140,6 @@ class BayesRegression(PerformanceModel):
 			self.prediction_dict[metric] = (pred_mean, pred_covar)
 			if prediction_df is not None:
 				prediction_df[metric] = pred_mean
-				prediction_df[metric+"_var"] = pred_covar
+				prediction_df[metric+"_var"] = np.diagonal(pred_covar)
 
 		return self.prediction_dict

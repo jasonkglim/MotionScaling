@@ -841,10 +841,10 @@ class InstrumentTracker:
 
                 # Total Error Heatmap
                 pred_error_covar_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="total_error_covar")
-                sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True)
-                axes[1, 1].set_title('Predicted Variance Total Error')
-                axes[1, 1].set_xlabel('Scale')
-                axes[1, 1].set_ylabel('Latency')
+                sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[2, 1], annot=True)
+                axes[2, 1].set_title('Predicted Variance Total Error')
+                axes[2, 1].set_xlabel('Scale')
+                axes[2, 1].set_ylabel('Latency')
 
 
                 plt.tight_layout()

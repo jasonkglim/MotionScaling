@@ -15,7 +15,7 @@ from scaling_policy import ScalingPolicy
 def visualize_controller(obs_df, prediction_df):
 	# Define ranges
 	scale_range = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
-	latency_range = [0.0, 0.25, 0.5, 0.75]
+	latency_range = [0.25]
 
 	# Create DataFrame for all combinations
 	sparse_df = pd.DataFrame(list(itertools.product(latency_range, scale_range)), columns=["latency", "scale"])
@@ -30,7 +30,7 @@ def visualize_controller(obs_df, prediction_df):
 	sparse_df.reset_index(inplace=True)
 
 	# Plotting
-	fig, axes = plt.subplots(2, 2)
+	fig, axes = plt.subplots(3, 2, figsize=(12, 6))
 
 	# Throughput Heatmap
 	sparse_throughput_heatmap = sparse_df.pivot(index="latency", columns="scale", values="throughput")
@@ -49,16 +49,30 @@ def visualize_controller(obs_df, prediction_df):
 	# Predicted Heatmaps
 	pred_throughput_heatmap = prediction_df.pivot(index="latency", columns="scale", values="throughput")
 	sns.heatmap(pred_throughput_heatmap, cmap='YlGnBu', ax=axes[1, 0], annot=True)
-	axes[1, 0].set_title('Predicted Throughput')
+	axes[1, 0].set_title('Predicted Mean Throughput')
 	axes[1, 0].set_xlabel('Scale')
 	axes[1, 0].set_ylabel('Latency')
 
 	# Total Error Heatmap
 	pred_error_heatmap = prediction_df.pivot(index="latency", columns="scale", values="total_error")
 	sns.heatmap(pred_error_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True)
-	axes[1, 1].set_title('Predicted Total Error')
+	axes[1, 1].set_title('Predicted Mean Total Error')
 	axes[1, 1].set_xlabel('Scale')
 	axes[1, 1].set_ylabel('Latency')
+
+	# Predicted Heatmaps
+	pred_throughput_covar_heatmap = prediction_df.pivot(index="latency", columns="scale", values="throughput_var")
+	sns.heatmap(pred_throughput_covar_heatmap, cmap='YlGnBu', ax=axes[2, 0], annot=True)
+	axes[2, 0].set_title('Predicted Variance Throughput')
+	axes[2, 0].set_xlabel('Scale')
+	axes[2, 0].set_ylabel('Latency')
+
+	# Total Error Heatmap
+	pred_error_covar_heatmap = prediction_df.pivot(index="latency", columns="scale", values="total_error_var")
+	sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[2, 1], annot=True)
+	axes[2, 1].set_title('Predicted Variance Total Error')
+	axes[2, 1].set_xlabel('Scale')
+	axes[2, 1].set_ylabel('Latency')
 
 	plt.tight_layout()
 	plt.show()
@@ -79,8 +93,8 @@ all_datasets = {}
 for filepath in glob.glob(file_pattern):
 	# print(filepath)
 	# print(filepath.split('/'))
-	# user_name = filepath.split('/')[1]
-	user_name = filepath.split('\\')[1]
+	user_name = filepath.split('/')[1]
+	# user_name = filepath.split('\\')[1]
 	# print(f"Processing {filepath} dataset...")
 
 	# Read in data file as a pandas dataframe
@@ -102,11 +116,12 @@ all_datasets["user_lizzie"] = combined_df.groupby(['latency', 'scale']).mean().r
 ## Start modeling
 player = "user_sujaan"
 player_df = all_datasets[player]
+player_df = player_df[player_df["latency"] == 0.25]
 metric_dict = {}
 
 # Initialize model and control policy
 scale_domain = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
-latency_domain = [0.0, 0.25, 0.5, 0.75]
+latency_domain = [0.25]
 metric_list = ["throughput", "total_error"] # metrics to be tracked and modeled by PerformanceModel
 obs_df = pd.DataFrame()
 model = BayesRegression()
@@ -120,7 +135,7 @@ visited = []
 for input_latency in full_latency_list:
 	while True:
 		control_scale = policy.random_scale()
-		if (input_latency, control_scale) not in visited:
+		if (input_latency, control_scale) not in visited or len(visited) == len(player_df):
 			break # TO DO change so that it breaks if
 
 	# Select input_latency?
