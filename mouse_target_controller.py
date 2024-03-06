@@ -8,7 +8,7 @@ import csv
 import pandas as pd
 import numpy as np
 from models import BayesRegression
-from scaling_policy import ScalingPolicy
+from scaling_policy import ScalingPolicy, BalancedScalingPolicy
 from process import transform_2d_coordinate, compute_osd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -44,7 +44,7 @@ class InstrumentTracker:
 
                 # Initialize Models
                 self.model = BayesRegression()
-                self.scaling_policy = ScalingPolicy(scale_domain=self.scale_domain)
+                self.scaling_policy = BalancedScalingPolicy(scale_domain=self.scale_domain)
                 # Set prior?
                 # Choose init conditions
                 self.control_scale = 0.6 # TO DO: later can be replaced with optimal from prior
@@ -773,11 +773,12 @@ class InstrumentTracker:
                 prediction_dict = self.model.predict(self.prediction_input, self.prediction_df)
 
                 # Choosing next scaling factor
-                if len(self.visited_params['scale']) < 10:
-                        self.control_scale = self.scaling_policy.random_scale(self.visited_params['scale'])
-                else:
-                        print("Went through all scale domain")
-                        self.control_scale = 1.0
+                # if len(self.visited_params['scale']) < 10:
+                #         self.control_scale = self.scaling_policy.random_scale(self.visited_params['scale'])
+                # else:
+                #         print("Went through all scale domain")
+                #         self.control_scale = 1.0
+                self.control_scale = self.scaling_policy.get_scale(self.prediction_df, metric="throughput")
 
                 # Visualize results
                 self.visualize_feedback()
@@ -796,6 +797,7 @@ class InstrumentTracker:
                 # Update sparse_df with data from obs_df
                 # header = ['latency', 'scale', 'throughput', 'avg_osd', 'avg_target_error', 'total_error', 'avg_movement_speed']
                 obs_df_copy = pd.DataFrame(self.obs_data)
+                obs_df_copy = obs_df_copy.groupby(['latency', 'scale']).mean().reset_index()
                 sparse_df.set_index(['latency', 'scale'], inplace=True)
                 obs_df_copy.set_index(['latency', 'scale'], inplace=True)
                 sparse_df.update(obs_df_copy)
@@ -803,6 +805,7 @@ class InstrumentTracker:
 
                 # Plotting
                 fig, axes = plt.subplots(3, 2, figsize=(12, 6))
+                fig.suptitle(f"Control Scale chosen: {self.control_scale}")
 
                 # Throughput Heatmap
                 sparse_throughput_heatmap = sparse_df.pivot(index="latency", columns="scale", values="throughput")
@@ -833,14 +836,14 @@ class InstrumentTracker:
                 axes[1, 1].set_ylabel('Latency')
 
                 # Predicted Heatmaps
-                pred_throughput_covar_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="throughput_covar")
+                pred_throughput_covar_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="throughput_var")
                 sns.heatmap(pred_throughput_covar_heatmap, cmap='YlGnBu', ax=axes[2, 0], annot=True)
                 axes[2, 0].set_title('Predicted Variance Throughput')
                 axes[2, 0].set_xlabel('Scale')
                 axes[2, 0].set_ylabel('Latency')
 
                 # Total Error Heatmap
-                pred_error_covar_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="total_error_covar")
+                pred_error_covar_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="total_error_var")
                 sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[2, 1], annot=True)
                 axes[2, 1].set_title('Predicted Variance Total Error')
                 axes[2, 1].set_xlabel('Scale')

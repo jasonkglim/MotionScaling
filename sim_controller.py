@@ -12,7 +12,7 @@ import itertools
 from models import BayesRegression
 from scaling_policy import ScalingPolicy, BalancedScalingPolicy
 
-def visualize_controller(obs_df, prediction_df):
+def visualize_controller(obs_df, prediction_df, iteration, control_scale):
 	# Define ranges
 	scale_range = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
 	latency_range = [0.25]
@@ -32,6 +32,7 @@ def visualize_controller(obs_df, prediction_df):
 
 	# Plotting
 	fig, axes = plt.subplots(3, 2, figsize=(12, 6))
+	fig.suptitle(f"Control Scale Chosen: {control_scale}")
 
 	# Throughput Heatmap
 	sparse_throughput_heatmap = sparse_df.pivot(index="latency", columns="scale", values="throughput")
@@ -76,7 +77,8 @@ def visualize_controller(obs_df, prediction_df):
 	axes[2, 1].set_ylabel('Latency')
 
 	plt.tight_layout()
-	plt.show()
+	plt.savefig(f"controller_data_files/sim3/{iteration}.png")
+	plt.close()
 
 
 
@@ -133,7 +135,7 @@ prediction_df = player_df[["latency", "scale"]].copy()
 full_latency_list = [l for l in latency_domain for _ in range(len(scale_domain))]
 control_scale = 1.0
 visited = []
-for input_latency in full_latency_list:
+for i, input_latency in enumerate(full_latency_list):
 	# while True:
 	# 	control_scale = policy.random_scale()
 	# 	if (input_latency, control_scale) not in visited or len(visited) == len(player_df):
@@ -161,7 +163,7 @@ for input_latency in full_latency_list:
 	# policy.update(model) 
 
 	# # Visualize
-	visualize_controller(obs_df, prediction_df)
+	visualize_controller(obs_df, prediction_df, i, control_scale)
 
 	control_scale = policy.get_scale(prediction_df, metric="throughput")
 	
