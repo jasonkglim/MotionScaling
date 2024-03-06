@@ -25,7 +25,7 @@ class InstrumentTracker:
 
                 # Setting up game parameters
                 self.latency_domain = [0.25] #[round(0.25 * i, 2) for i in range(4)]
-                self.scale_domain = np.arange(0.1, 1.1, 0.1)
+                self.scale_domain = np.round(np.arange(0.1, 1.1, 0.1), 1)
                 self.target_distance = 222
                 self.target_width = 40
                 self.visited_params = dict(
@@ -781,6 +781,9 @@ class InstrumentTracker:
 
         def visualize_feedback(self):
 
+                save_folder = os.path.join(self.data_folder, "controller_results")
+                os.makedirs(save_folder, exist_ok=True)
+
                 # Create DataFrame for all combinations
                 sparse_df = pd.DataFrame(list(itertools.product(self.latency_domain, self.scale_domain)), columns=["latency", "scale"])
                 sparse_df['throughput'] = np.nan
@@ -826,8 +829,11 @@ class InstrumentTracker:
                 axes[1, 1].set_ylabel('Latency')
 
 
-                # plt.tight_layout()
-                plt.show()
+                plt.tight_layout()
+                plt.savefig(os.path.join(save_folder, f"{self.trial_num}.png"))
+                plt.close()
+                # plt.show()
+                
                 
 
 
