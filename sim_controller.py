@@ -10,7 +10,7 @@ from utils import stratified_sample, annotate, even_train_split
 import glob  # Importing the glob module to find all the files matching a pattern
 import itertools
 from models import BayesRegression
-from scaling_policy import ScalingPolicy
+from scaling_policy import ScalingPolicy, BalancedScalingPolicy
 
 def visualize_controller(obs_df, prediction_df):
 	# Define ranges
@@ -124,7 +124,7 @@ scale_domain = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
 latency_domain = [0.25]
 metric_list = ["throughput", "total_error"] # metrics to be tracked and modeled by PerformanceModel
 obs_df = pd.DataFrame()
-model = BayesRegression()
+model = Bala()
 policy = ScalingPolicy(scale_domain=scale_domain)
 prediction_df = player_df[["latency", "scale"]].copy()
 
@@ -133,10 +133,10 @@ full_latency_list = [l for l in latency_domain for _ in range(len(scale_domain))
 control_scale = 1.0
 visited = []
 for input_latency in full_latency_list:
-	while True:
-		control_scale = policy.random_scale()
-		if (input_latency, control_scale) not in visited or len(visited) == len(player_df):
-			break # TO DO change so that it breaks if
+	# while True:
+	# 	control_scale = policy.random_scale()
+	# 	if (input_latency, control_scale) not in visited or len(visited) == len(player_df):
+	# 		break # TO DO change so that it breaks if
 
 	# Select input_latency?
 	obs_df = pd.concat([obs_df, player_df[(player_df["latency"] == input_latency) & (player_df["scale"] == control_scale)]])
@@ -161,6 +161,8 @@ for input_latency in full_latency_list:
 
 	# # Visualize
 	visualize_controller(obs_df, prediction_df)
+
+	control_scale = policy.optimal_scale(prediction_df, metric="throughput")
 	
 
 

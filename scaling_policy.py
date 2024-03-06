@@ -38,5 +38,8 @@ class BalancedScalingPolicy(ScalingPolicy):
 		else:
 			return self.max_unc_scale(prediction_df)
 		
+	def optimal_scale(self, prediction_df, metric):
+		optimal_scale = prediction_df.loc[prediction_df.groupby('latency')[metric].idxmax()][['latency', 'scale']]
+		return optimal_scale
 	
 
