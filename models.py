@@ -140,5 +140,6 @@ class BayesRegression(PerformanceModel):
 			self.prediction_dict[metric] = (pred_mean, pred_covar)
 			if prediction_df is not None:
 				prediction_df[metric] = pred_mean
+				prediction_df[metric+"_var"] = pred_covar
 
 		return self.prediction_dict

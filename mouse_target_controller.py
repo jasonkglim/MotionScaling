@@ -773,7 +773,11 @@ class InstrumentTracker:
                 prediction_dict = self.model.predict(self.prediction_input, self.prediction_df)
 
                 # Choosing next scaling factor
-                self.control_scale = self.scaling_policy.random_scale(self.visited_params['scale'])
+                if len(self.visited_params['scale']) < 10:
+                        self.control_scale = self.scaling_policy.random_scale(self.visited_params['scale'])
+                else:
+                        print("Went through all scale domain")
+                        self.control_scale = 1.0
 
                 # Visualize results
                 self.visualize_feedback()
@@ -798,7 +802,7 @@ class InstrumentTracker:
                 sparse_df.reset_index(inplace=True)
 
                 # Plotting
-                fig, axes = plt.subplots(2, 2)
+                fig, axes = plt.subplots(3, 2)
 
                 # Throughput Heatmap
                 sparse_throughput_heatmap = sparse_df.pivot(index="latency", columns="scale", values="throughput")
@@ -817,14 +821,28 @@ class InstrumentTracker:
                 # Predicted Heatmaps
                 pred_throughput_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="throughput")
                 sns.heatmap(pred_throughput_heatmap, cmap='YlGnBu', ax=axes[1, 0], annot=True)
-                axes[1, 0].set_title('Predicted Throughput')
+                axes[1, 0].set_title('Predicted Mean Throughput')
                 axes[1, 0].set_xlabel('Scale')
                 axes[1, 0].set_ylabel('Latency')
 
                 # Total Error Heatmap
                 pred_error_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="total_error")
                 sns.heatmap(pred_error_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True)
-                axes[1, 1].set_title('Predicted Total Error')
+                axes[1, 1].set_title('Predicted Mean Total Error')
+                axes[1, 1].set_xlabel('Scale')
+                axes[1, 1].set_ylabel('Latency')
+
+                # Predicted Heatmaps
+                pred_throughput_covar_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="throughput_covar")
+                sns.heatmap(pred_throughput_covar_heatmap, cmap='YlGnBu', ax=axes[2, 0], annot=True)
+                axes[2, 0].set_title('Predicted Variance Throughput')
+                axes[2, 0].set_xlabel('Scale')
+                axes[2, 0].set_ylabel('Latency')
+
+                # Total Error Heatmap
+                pred_error_covar_heatmap = self.prediction_df.pivot(index="latency", columns="scale", values="total_error_covar")
+                sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True)
+                axes[1, 1].set_title('Predicted Variance Total Error')
                 axes[1, 1].set_xlabel('Scale')
                 axes[1, 1].set_ylabel('Latency')
 
