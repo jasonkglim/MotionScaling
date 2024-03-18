@@ -12,6 +12,8 @@ class PerformanceModel:
 		if train_inputs == None:
 			self.X = []
 			self.y_dict = {}
+			self.input_dim = 0
+			self.num_examples = 0
 		if train_inputs != None:
 			self.X = train_inputs
 			self.input_dim = self.X.shape[0]
@@ -77,6 +79,23 @@ class BayesRegression(PerformanceModel):
 		self.noise = noise # Defines the variance of gaussian observation noise
 		self.posterior_dict = {}
 		self.prediction_dict = {}
+		self.transform = False
+
+	def set_poly_transform(self, degree):
+		'''
+		Apply a Polynomial transformation
+		'''
+		self.transform = True
+		self.degree = degree
+		self.poly = PolynomialFeatures(degree=degree)
+		if len(self.X) > 0: 
+			self.X_trans = self.poly.fit_transform(self.X.T).T
+			self.input_dim = len(self.X_trans)
+			# Resize prior
+			self.set_prior(0, 1e3) # TO DO change this!
+	
+		
+
 
 	# Define custom prior for weights
 	def set_prior(self, mean, var):
@@ -90,25 +109,37 @@ class BayesRegression(PerformanceModel):
 			self.prior_covar = var
 
 	def add_training_data(self, train_inputs, train_output_dict):
-		# TO DO: catch exceptions for bad args, change to accept dictionary
-		# if len(self.X) == 0: # if uninitialized
-		self.X = train_inputs
-		for metric, data in train_output_dict.items():
-			self.y_dict[metric] = np.array(data).reshape((-1, 1))
-		self.input_dim = self.X.shape[0]
-		self.num_examples = self.X.shape[1]
-		self.set_prior(0, 1e3) # TO DO change this!
-		# else:
+		# TO DO: catch exceptions for bad args
+		if True: # len(self.X) == 0: # if uninitialized
+			self.X = np.array(train_inputs)
+			self.input_dim = len(self.X)
+			self.num_examples = len(self.X[0])
+			if self.transform:
+				self.X_trans = self.poly.fit_transform(train_inputs.T).T
+				self.input_dim = len(self.X_trans)
+
+			for metric, data in train_output_dict.items():
+				self.y_dict[metric] = np.array(data).reshape((-1, 1))
+		# else: # Already have some data
 		# 	self.X = np.concatenate((self.X, train_inputs), 1)
+		# 	self.num_examples = len(self.X)
+		# 	if self.transform:
+		# 		self.X_trans = np.concatenate((self.X_trans, self.poly.transfrom(train_inputs)))
 		# 	for metric, data in train_output_dict.items():
 		# 		data = np.array(data).reshape((-1, 1)) # convert to np column vector
 		# 		self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 1)
+		
+		self.set_prior(0, 1e3) # TO DO change this!
 
 	# Computes poseterior parameters from training data and prior 
 	def train(self):
+		if self.transform:
+			X = self.X_trans
+		else:
+			X = self.X
 		for metric, y in self.y_dict.items():
 			y = np.array(y).reshape((-1, 1))
-			A = (self.X @ self.X.T / self.noise**2
+			A = (X @ X.T / self.noise**2
 				+ np.linalg.inv(self.prior_covar))
 			posterior_covar = np.linalg.inv(A)
 			# print(self.posterior_covar.shape)
@@ -117,7 +148,7 @@ class BayesRegression(PerformanceModel):
 			# print("prior covar ", self.prior_covar.shape)
 			# print("prior mean ", self.prior_mean.shape)
 			posterior_mean = (posterior_covar
-								@ (self.X @ y / self.noise**2
+								@ (X @ y / self.noise**2
 									+ np.linalg.inv(self.prior_covar)
 									@ self.prior_mean))
 			self.posterior_dict[metric] = (posterior_mean, posterior_covar)
@@ -133,8 +164,10 @@ class BayesRegression(PerformanceModel):
 		args:
 			test_input: array: each column represents an input, should be size input_dim x num_inputs
 		'''
+		test_input = np.array(test_input)
+		if self.transform:
+			test_input = self.poly.transform(test_input.T).T
 		for metric, (posterior_mean, posterior_covar) in self.posterior_dict.items():
-			test_input = np.array(test_input)
 			pred_mean = test_input.T @ posterior_mean
 			pred_covar = test_input.T @ posterior_covar @ test_input
 			self.prediction_dict[metric] = (pred_mean, pred_covar)

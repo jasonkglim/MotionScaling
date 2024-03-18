@@ -77,7 +77,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale):
 	axes[2, 1].set_ylabel('Latency')
 
 	plt.tight_layout()
-	plt.savefig(f"controller_data_files/sim3/{iteration}.png")
+	plt.savefig(f"controller_data_files/sim_poly/{iteration}.png")
 	plt.close()
 
 
@@ -128,6 +128,7 @@ latency_domain = [0.25]
 metric_list = ["throughput", "total_error"] # metrics to be tracked and modeled by PerformanceModel
 obs_df = pd.DataFrame()
 model = BayesRegression()
+model.set_poly_transform(degree=2)
 policy = BalancedScalingPolicy(scale_domain=scale_domain)
 prediction_df = player_df[["latency", "scale"]].copy()
 
