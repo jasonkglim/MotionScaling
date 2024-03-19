@@ -78,7 +78,7 @@ def annotate_extrema(data, ax, extrema_type='max'):
         color = 'red'
     if extrema_type == 'min':
         extrema_index = np.nanargmin(data, axis=1)
-        color = 'orange'
+        color = 'indigo'
     for i, max_col in enumerate(extrema_index):
         ax.add_patch(plt.Rectangle((max_col, i), 1, 1, fill=False, edgecolor=color, lw=3))
 

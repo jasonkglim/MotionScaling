@@ -2,23 +2,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import seaborn as sns
+import pandas as pd
+from scaling_policy import ScalingPolicy
 
-# Step 1: Prepare your data
-data = np.random.rand(10, 10)  # Random data for demonstration
+data = {
+    'latency': ['low', 'low', 'medium', 'medium', 'medium', 'high', 'high'],
+    'metric_var': [0.1, 0.2, 0.6, 0.4, 0.6, 0.8, 0.7],
+    'scale': [1, 2, 3, 4, 5, 6, 7]
+}
+prediction_df = pd.DataFrame(data)
 
-# Step 2: Set up the plot
-fig, ax = plt.subplots()
-sns.heatmap(data, ax=ax)
+policy = ScalingPolicy(scale_domain=data["scale"])
 
-# Step 3: Create a function to update the heatmap
-def update(*args):
-    data = np.random.rand(10, 10)  # Generate new random data
-    ax.clear()  # Clear the previous heatmap
-    sns.heatmap(data, ax=ax, cbar=False)  # Create a new heatmap
-
-# Step 4: Use FuncAnimation to create the animation
-ani = animation.FuncAnimation(fig, update, frames=30, interval=200)
-
-# Step 5: Save or show the animation
-plt.show()  # Show the animation
-# ani.save('heatmap_animation.mp4')  # Uncomment to save the animation as a file
+for l in ["low", "medium", "high"]:
+    for i in range(3):
+        control_scale, _ = policy.max_unc_scale(prediction_df, "metric", latency=l, level=i+1)
+        print(prediction_df)
+        print(l, "highest ", i+1, control_scale)

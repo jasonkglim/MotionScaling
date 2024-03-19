@@ -199,14 +199,21 @@ for i in range(40): #, input_latency in enumerate(full_latency_list):
 	# # Visualize
 	visualize_controller(obs_df, prediction_df, i, control_scale, policy_choice)
 
+	# Compute eval metrics
+	test_set = player_df.groupby(["latency", "scale"]).mean().reset_index()
+	mse_scores_throughput = mean_squared_error(prediction_df["throughput"], test_set["throughput"])
+
 
 	found_scale = False
 	control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput")
+	# If chosen control_scale doesn't have any training points left, pick next most uncertain
+	level = 2 
 	while not found_scale:
 		if control_scale in player_df["scale"].value_counts():
 			found_scale = True
 		else:
-			control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput")
+			control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput", level=level)
+			level += 1
 	
 
 
