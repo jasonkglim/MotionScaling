@@ -12,8 +12,10 @@ import itertools
 from models import BayesRegression
 from scaling_policy import ScalingPolicy, BalancedScalingPolicy
 from utils import annotate_extrema
+import os
+import pickle
 
-def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy_choice):
+def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy_choice, save_data_folder):
 	# Define ranges
 	# scale_domain = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 	# latency_domain = [0.25]
@@ -39,7 +41,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 
 	# Throughput Heatmap
 	sparse_throughput_heatmap = sparse_df.pivot(index="latency", columns="scale", values="throughput")
-	sns.heatmap(sparse_throughput_heatmap, cmap='YlGnBu', ax=axes[0, 0], annot=True, fmt="0.3f")
+	sns.heatmap(sparse_throughput_heatmap, cmap='YlGnBu', ax=axes[0, 0], annot=True, fmt="0.3g")
 	axes[0, 0].set_title('Observed Throughput')
 	axes[0, 0].set_xlabel('Scale')
 	axes[0, 0].set_ylabel('Latency')
@@ -48,7 +50,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 
 	# Total Error Heatmap
 	sparse_error_heatmap = sparse_df.pivot(index="latency", columns="scale", values="total_error")
-	sns.heatmap(sparse_error_heatmap, cmap='YlGnBu', ax=axes[0, 1], annot=True, fmt="0.3f")
+	sns.heatmap(sparse_error_heatmap, cmap='YlGnBu', ax=axes[0, 1], annot=True, fmt="0.3g")
 	axes[0, 1].set_title('Observed Total Error')
 	axes[0, 1].set_xlabel('Scale')
 	axes[0, 1].set_ylabel('Latency')
@@ -58,7 +60,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 
 	# Predicted Heatmaps
 	pred_throughput_heatmap = prediction_df.pivot(index="latency", columns="scale", values="throughput")
-	sns.heatmap(pred_throughput_heatmap, cmap='YlGnBu', ax=axes[1, 0], annot=True, fmt="0.3f")
+	sns.heatmap(pred_throughput_heatmap, cmap='YlGnBu', ax=axes[1, 0], annot=True, fmt="0.3g")
 	axes[1, 0].set_title('Predicted Mean Throughput')
 	axes[1, 0].set_xlabel('Scale')
 	axes[1, 0].set_ylabel('Latency')
@@ -68,7 +70,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 
 	# Total Error Heatmap
 	pred_error_heatmap = prediction_df.pivot(index="latency", columns="scale", values="total_error")
-	sns.heatmap(pred_error_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True, fmt="0.3f")
+	sns.heatmap(pred_error_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True, fmt="0.3g")
 	axes[1, 1].set_title('Predicted Mean Total Error')
 	axes[1, 1].set_xlabel('Scale')
 	axes[1, 1].set_ylabel('Latency')
@@ -78,7 +80,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 
 	# Predicted Heatmaps
 	pred_throughput_covar_heatmap = prediction_df.pivot(index="latency", columns="scale", values="throughput_var")
-	sns.heatmap(pred_throughput_covar_heatmap, cmap='YlGnBu', ax=axes[2, 0], annot=True, fmt="0.3f")
+	sns.heatmap(pred_throughput_covar_heatmap, cmap='YlGnBu', ax=axes[2, 0], annot=True, fmt="0.3g")
 	axes[2, 0].set_title('Predicted Variance Throughput')
 	axes[2, 0].set_xlabel('Scale')
 	axes[2, 0].set_ylabel('Latency')
@@ -88,7 +90,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 
 	# Total Error Heatmap
 	pred_error_covar_heatmap = prediction_df.pivot(index="latency", columns="scale", values="total_error_var")
-	sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[2, 1], annot=True, fmt="0.3f")
+	sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[2, 1], annot=True, fmt="0.3g")
 	axes[2, 1].set_title('Predicted Variance Total Error')
 	axes[2, 1].set_xlabel('Scale')
 	axes[2, 1].set_ylabel('Latency')
@@ -97,7 +99,7 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 
 
 	plt.tight_layout()
-	plt.savefig(f"controller_data_files/sim_poly_maxunc/{iteration}.png")
+	plt.savefig(f"{save_data_folder}/{iteration}.png")
 	plt.close()
 
 
@@ -140,8 +142,17 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 # player = "user_jason_new"
 # player_df = all_datasets[player]
 # player_df = player_df[player_df["latency"] == 0.25]
-player_df = pd.read_csv("data_files/user_jason_new/obs_metric_data.csv", index_col=0)
+
+save_data_folder = "controller_data_files/50-50_greedy_max_unc"
+os.makedirs(save_data_folder, exist_ok=True)
+player_df_full = pd.read_csv("data_files/user_jason_new/obs_metric_data.csv", index_col=0)
+player_df_avg = player_df_full.groupby(["latency", "scale"]).mean().reset_index()
+true_optimal_scale_throughput = player_df_avg.loc[player_df_avg.groupby('latency')["throughput"].idxmax()]['scale'].values[0]
+true_optimal_scale_error = player_df_avg.loc[player_df_avg.groupby('latency')["total_error"].idxmax()]['scale'].values[0]
+player_df = player_df_full.copy()
 metric_dict = {}
+mse_scores = {"throughput": [], "total_error": []}
+optimal_scale_errors = {"throughput": [], "total_error": []}
 
 # Initialize model and control policy
 scale_domain = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
@@ -164,7 +175,7 @@ control_scale, policy_choice = policy.random_scale()
 # policy_choice = "random"
 visited = []
 input_latency = 0.25
-for i in range(40): #, input_latency in enumerate(full_latency_list):
+for i in range(38): #, input_latency in enumerate(full_latency_list):
 	print("Iteration ", i)
 	# while True:
 	# 	control_scale = policy.random_scale()
@@ -191,34 +202,46 @@ for i in range(40): #, input_latency in enumerate(full_latency_list):
 	model.train()
 	
 	prediction_dict = model.predict(test_input, prediction_df)
-	
-
-	# # Input Performance Model to Scaling Policy
-	# policy.update(model) 
-
-	# # Visualize
-	visualize_controller(obs_df, prediction_df, i, control_scale, policy_choice)
 
 	# Compute eval metrics
 	test_set = player_df.groupby(["latency", "scale"]).mean().reset_index()
-	mse_scores_throughput = mean_squared_error(prediction_df["throughput"], test_set["throughput"])
+	prediction_df_test = pd.merge(prediction_df, test_set["scale"], on="scale", how="inner")
+	mse_scores_throughput = mean_squared_error(prediction_df_test["throughput"], test_set["throughput"])
+	mse_scores_error = mean_squared_error(prediction_df_test["total_error"], test_set["total_error"])
+	pred_optimal_scale_throughput = prediction_df.loc[prediction_df.groupby('latency')["throughput"].idxmax()]['scale'].values[0]
+	pred_optimal_scale_error = prediction_df.loc[prediction_df.groupby('latency')["total_error"].idxmax()]['scale'].values[0]
+	# optimal_scale_error_throughput = mean_squared_error(true_optimal_scale_throughput, pred_optimal_scale_throughput)
+	# optimal_scale_error_error = mean_squared_error(true_optimal_scale_error, pred_optimal_scale_error)
+	optimal_scale_error_throughput = np.square(true_optimal_scale_throughput - pred_optimal_scale_throughput)
+	optimal_scale_error_error = np.square(true_optimal_scale_error - pred_optimal_scale_error)
+	mse_scores["throughput"].append(mse_scores_throughput)
+	mse_scores["total_error"].append(mse_scores_error)
+	optimal_scale_errors["throughput"].append(optimal_scale_error_throughput)
+	optimal_scale_errors["total_error"].append(optimal_scale_error_error)
 
+	# # Visualize
+	visualize_controller(obs_df, prediction_df, i, control_scale, policy_choice, save_data_folder)
 
 	found_scale = False
-	control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput")
+	control_scale, policy_choice = policy.get_scale(prediction_df_test, latency=input_latency, metric="throughput")
 	# If chosen control_scale doesn't have any training points left, pick next most uncertain
 	level = 2 
-	while not found_scale:
-		if control_scale in player_df["scale"].value_counts():
-			found_scale = True
-		else:
-			control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput", level=level)
-			level += 1
+	# while not found_scale:
+	if control_scale not in player_df["scale"].value_counts():
+		found_scale = True
+		# else:
+		# 	control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput", latency=input_latency, level=level)
+		# 	level += 1
 	
 
 
+### Save evaluation metrics
+eval_data = dict(
+	mse_scores = mse_scores,
+	optimal_scale_errors = optimal_scale_errors
+)
 
-
-	
+with open(f"{save_data_folder}/eval_data.pkl", "wb") as f:
+	pickle.dump(eval_data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
