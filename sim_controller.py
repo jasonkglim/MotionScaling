@@ -11,10 +11,13 @@ import glob  # Importing the glob module to find all the files matching a patter
 import itertools
 from models import BayesRegression
 from scaling_policy import ScalingPolicy, BalancedScalingPolicy
+from utils import annotate_extrema
 
-def visualize_controller(obs_df, prediction_df, iteration, control_scale):
+def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy_choice):
 	# Define ranges
-	scale_range = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
+	# scale_domain = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+	# latency_domain = [0.25]
+	scale_range = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8] #[0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
 	latency_range = [0.25]
 
 	# Create DataFrame for all combinations
@@ -32,52 +35,69 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale):
 
 	# Plotting
 	fig, axes = plt.subplots(3, 2, figsize=(12, 6))
-	fig.suptitle(f"Control Scale Chosen: {control_scale}")
+	fig.suptitle(f"Control Scale Chosen: {control_scale} by {policy_choice}")
 
 	# Throughput Heatmap
 	sparse_throughput_heatmap = sparse_df.pivot(index="latency", columns="scale", values="throughput")
-	sns.heatmap(sparse_throughput_heatmap, cmap='YlGnBu', ax=axes[0, 0], annot=True)
+	sns.heatmap(sparse_throughput_heatmap, cmap='YlGnBu', ax=axes[0, 0], annot=True, fmt="0.3f")
 	axes[0, 0].set_title('Observed Throughput')
 	axes[0, 0].set_xlabel('Scale')
 	axes[0, 0].set_ylabel('Latency')
+	annotate_extrema(sparse_throughput_heatmap.values, axes[0, 0])
+	annotate_extrema(sparse_throughput_heatmap.values, axes[0, 0], "min")
 
 	# Total Error Heatmap
 	sparse_error_heatmap = sparse_df.pivot(index="latency", columns="scale", values="total_error")
-	sns.heatmap(sparse_error_heatmap, cmap='YlGnBu', ax=axes[0, 1], annot=True)
+	sns.heatmap(sparse_error_heatmap, cmap='YlGnBu', ax=axes[0, 1], annot=True, fmt="0.3f")
 	axes[0, 1].set_title('Observed Total Error')
 	axes[0, 1].set_xlabel('Scale')
 	axes[0, 1].set_ylabel('Latency')
+	annotate_extrema(sparse_error_heatmap.values, axes[0, 1], "min")
+	annotate_extrema(sparse_error_heatmap.values, axes[0, 1], "max")
+
 
 	# Predicted Heatmaps
 	pred_throughput_heatmap = prediction_df.pivot(index="latency", columns="scale", values="throughput")
-	sns.heatmap(pred_throughput_heatmap, cmap='YlGnBu', ax=axes[1, 0], annot=True)
+	sns.heatmap(pred_throughput_heatmap, cmap='YlGnBu', ax=axes[1, 0], annot=True, fmt="0.3f")
 	axes[1, 0].set_title('Predicted Mean Throughput')
 	axes[1, 0].set_xlabel('Scale')
 	axes[1, 0].set_ylabel('Latency')
+	annotate_extrema(pred_throughput_heatmap.values, axes[1, 0])
+	annotate_extrema(pred_throughput_heatmap.values, axes[1, 0], "min")
+
 
 	# Total Error Heatmap
 	pred_error_heatmap = prediction_df.pivot(index="latency", columns="scale", values="total_error")
-	sns.heatmap(pred_error_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True)
+	sns.heatmap(pred_error_heatmap, cmap='YlGnBu', ax=axes[1, 1], annot=True, fmt="0.3f")
 	axes[1, 1].set_title('Predicted Mean Total Error')
 	axes[1, 1].set_xlabel('Scale')
 	axes[1, 1].set_ylabel('Latency')
+	annotate_extrema(pred_error_heatmap.values, axes[1, 1], "min")
+	annotate_extrema(pred_error_heatmap.values, axes[1, 1], "max")
+
 
 	# Predicted Heatmaps
 	pred_throughput_covar_heatmap = prediction_df.pivot(index="latency", columns="scale", values="throughput_var")
-	sns.heatmap(pred_throughput_covar_heatmap, cmap='YlGnBu', ax=axes[2, 0], annot=True)
+	sns.heatmap(pred_throughput_covar_heatmap, cmap='YlGnBu', ax=axes[2, 0], annot=True, fmt="0.3f")
 	axes[2, 0].set_title('Predicted Variance Throughput')
 	axes[2, 0].set_xlabel('Scale')
 	axes[2, 0].set_ylabel('Latency')
+	annotate_extrema(pred_throughput_covar_heatmap.values, axes[2, 0], "min")
+	annotate_extrema(pred_throughput_covar_heatmap.values, axes[2, 0], "max")
+
 
 	# Total Error Heatmap
 	pred_error_covar_heatmap = prediction_df.pivot(index="latency", columns="scale", values="total_error_var")
-	sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[2, 1], annot=True)
+	sns.heatmap(pred_error_covar_heatmap, cmap='YlGnBu', ax=axes[2, 1], annot=True, fmt="0.3f")
 	axes[2, 1].set_title('Predicted Variance Total Error')
 	axes[2, 1].set_xlabel('Scale')
 	axes[2, 1].set_ylabel('Latency')
+	annotate_extrema(pred_error_covar_heatmap.values, axes[2, 1], "min")
+	annotate_extrema(pred_error_covar_heatmap.values, axes[2, 1], "max")
+
 
 	plt.tight_layout()
-	plt.savefig(f"controller_data_files/sim_poly/{iteration}.png")
+	plt.savefig(f"controller_data_files/sim_poly_maxunc/{iteration}.png")
 	plt.close()
 
 
@@ -86,44 +106,45 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale):
 	# fig, axes = plt.subplots(2, 3)
 	
 
-# Pattern to match the data files
-file_pattern = "data_files/user_*/metric_df.csv"
+# # Pattern to match the data files
+# file_pattern = "data_files/user_*/metric_df.csv"
 
-# Initialize a dictionary to store one_user_one_user_dataframes for each dataset
-all_datasets = {}
+# # Initialize a dictionary to store one_user_one_user_dataframes for each dataset
+# all_datasets = {}
 
-# Loop through each file that matches the file pattern
-for filepath in glob.glob(file_pattern):
-	# print(filepath)
-	# print(filepath.split('/'))
-	user_name = filepath.split('/')[1]
-	# user_name = filepath.split('\\')[1]
-	# print(f"Processing {filepath} dataset...")
+# # Loop through each file that matches the file pattern
+# for filepath in glob.glob(file_pattern):
+# 	# print(filepath)
+# 	# print(filepath.split('/'))
+# 	user_name = filepath.split('/')[1]
+# 	# user_name = filepath.split('\\')[1]
+# 	# print(f"Processing {filepath} dataset...")
 
-	# Read in data file as a pandas dataframe
-	data = pd.read_csv(filepath, index_col=0)
+# 	# Read in data file as a pandas dataframe
+# 	data = pd.read_csv(filepath, index_col=0)
 
-	# add weighted performance metric
-	w = 1
-	data["total_error"] = data['avg_osd'] + data['avg_target_error']
-	data["weighted_performance"] = 10*data['throughput'] - w*data["total_error"]
+# 	# add weighted performance metric
+# 	w = 1
+# 	data["total_error"] = data['avg_osd'] + data['avg_target_error']
+# 	data["weighted_performance"] = 10*data['throughput'] - w*data["total_error"]
 
-	all_datasets[user_name] = data
+# 	all_datasets[user_name] = data
 
-# Combine datasets for Lizzie
-lizzie1 = all_datasets["user_lizzie1"]
-lizzie2 = all_datasets["user_lizzie2"]
-combined_df = pd.concat([lizzie1, lizzie2])
-all_datasets["user_lizzie"] = combined_df.groupby(['latency', 'scale']).mean().reset_index()
+# # Combine datasets for Lizzie
+# lizzie1 = all_datasets["user_lizzie1"]
+# lizzie2 = all_datasets["user_lizzie2"]
+# combined_df = pd.concat([lizzie1, lizzie2])
+# all_datasets["user_lizzie"] = combined_df.groupby(['latency', 'scale']).mean().reset_index()
 
 ## Start modeling
-player = "user_sujaan"
-player_df = all_datasets[player]
-player_df = player_df[player_df["latency"] == 0.25]
+# player = "user_jason_new"
+# player_df = all_datasets[player]
+# player_df = player_df[player_df["latency"] == 0.25]
+player_df = pd.read_csv("data_files/user_jason_new/obs_metric_data.csv", index_col=0)
 metric_dict = {}
 
 # Initialize model and control policy
-scale_domain = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0]
+scale_domain = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 latency_domain = [0.25]
 metric_list = ["throughput", "total_error"] # metrics to be tracked and modeled by PerformanceModel
 obs_df = pd.DataFrame()
@@ -131,23 +152,36 @@ model = BayesRegression()
 model.set_poly_transform(degree=2)
 policy = BalancedScalingPolicy(scale_domain=scale_domain)
 prediction_df = player_df[["latency", "scale"]].copy()
+test_input = np.array([[l, s] for l in latency_domain for s in scale_domain]).T
+prediction_df = pd.DataFrame({
+	"latency": test_input[0,:],
+	"scale": test_input[1,:]
+})
 
 # Control loop:
 full_latency_list = [l for l in latency_domain for _ in range(len(scale_domain))]
-control_scale = 1.0
+control_scale, policy_choice = policy.random_scale()
+# policy_choice = "random"
 visited = []
-for i, input_latency in enumerate(full_latency_list):
+input_latency = 0.25
+for i in range(40): #, input_latency in enumerate(full_latency_list):
+	print("Iteration ", i)
 	# while True:
 	# 	control_scale = policy.random_scale()
 	# 	if (input_latency, control_scale) not in visited or len(visited) == len(player_df):
 	# 		break # TO DO change so that it breaks if
 
 	# Select input_latency?
-	obs_df = pd.concat([obs_df, player_df[(player_df["latency"] == input_latency) & (player_df["scale"] == control_scale)]])
-	print(obs_df[["latency", "scale"]])
+	filtered_df = player_df[(player_df["latency"] == input_latency) & (player_df["scale"] == control_scale)]
+	# current_obs_df = player_df[(player_df["latency"] == input_latency) & (player_df["scale"] == control_scale)].iloc[0]
+	current_obs_df = filtered_df.iloc[0:1]
+	print(current_obs_df)
+	player_df.drop(current_obs_df.index, inplace=True)
+	obs_df = pd.concat([obs_df, current_obs_df])
+	# print(obs_df[["latency", "scale"]])
 	# add obs_data to training data of PerformanceModel
-	obs_input = obs_df[["latency", "scale"]].values.T # ensure input data is formatted as column vectors, d x N
-	obs_output_dict = obs_df[metric_list].to_dict(orient='list')
+	obs_input = current_obs_df[["latency", "scale"]].values.T # ensure input data is formatted as column vectors, d x N
+	obs_output_dict = current_obs_df[metric_list].to_dict(orient='list')
 	visited.append((input_latency, control_scale))
 	# print(obs_df)
 	# print(obs_input)
@@ -155,7 +189,6 @@ for i, input_latency in enumerate(full_latency_list):
 	
 	model.add_training_data(obs_input, obs_output_dict)
 	model.train()
-	test_input = player_df[["latency", "scale"]].values.T
 	
 	prediction_dict = model.predict(test_input, prediction_df)
 	
@@ -164,9 +197,16 @@ for i, input_latency in enumerate(full_latency_list):
 	# policy.update(model) 
 
 	# # Visualize
-	visualize_controller(obs_df, prediction_df, i, control_scale)
+	visualize_controller(obs_df, prediction_df, i, control_scale, policy_choice)
 
-	control_scale = policy.get_scale(prediction_df, metric="throughput")
+
+	found_scale = False
+	control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput")
+	while not found_scale:
+		if control_scale in player_df["scale"].value_counts():
+			found_scale = True
+		else:
+			control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput")
 	
 
 

@@ -7,6 +7,8 @@ import random
 import csv
 import pandas as pd
 import numpy as np
+from process import transform_2d_coordinate, compute_osd
+
 
 class InstrumentTracker:
         def __init__(self, root, data_folder):
@@ -18,13 +20,14 @@ class InstrumentTracker:
                 self.param_file = f"{data_folder}/tested_params.csv"
 
                 # Setting up game parameters
-                latencies = [round(0.25 * i, 2) for i in range(4)]
-                scales = [0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
+                latencies = [0.25] #[round(0.25 * i, 2) for i in range(4)]
+                scales = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8] * 5 #[0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #[round(0.2 * j + 0.2, 1) for j in range(5)]
                 self.target_distance = 222
                 self.target_width = 40
 
                 # Create a list of all possible combinations of (x, y)
                 self.game_params = [(x, y) for x in latencies for y in scales]
+                self.obs_data = []
 
                 # Removing unnecessary param combos
                 # self.game_params.remove((0.0, 0.1))
@@ -130,8 +133,8 @@ class InstrumentTracker:
                 # Set current trial params
                 self.latency = self.game_params[self.trial_num][0]
                 self.motion_scale = self.game_params[self.trial_num][1]
-                self.current_log_file = f"{self.data_folder}/l{self.latency}s{self.motion_scale}.csv"
-                self.target_data_file = f"{self.data_folder}/target_data_l{self.latency}s{self.motion_scale}.csv"
+                self.current_log_file = f"{self.data_folder}/trial{self.trial_num}_l{self.latency}s{self.motion_scale}.csv"
+                self.target_data_file = f"{self.data_folder}/trial{self.trial_num}_target_data_l{self.latency}s{self.motion_scale}.csv"
 
                 # Create border warning rectangles
                 self.warning_rectangles = {}
@@ -319,6 +322,8 @@ class InstrumentTracker:
                 self.trial_num += 1
                 # if completed all trials, quit application
                 if self.trial_num == self.total_trials:
+                        obs_data_df = pd.DataFrame(self.obs_data)
+                        obs_data_df.to_csv(os.path.join(self.data_folder, "obs_metric_data.csv"))
                         self.root.destroy()
                         return "break"
 
@@ -420,6 +425,8 @@ class InstrumentTracker:
                         # Save target position data
                         df_target = pd.DataFrame(self.target_positions)
                         df_target.to_csv(self.target_data_file, mode='w')
+
+                        current_obs_data = self.process_trial(self.latency, self.motion_scale, self.current_log_file, self.target_data_file)
 
         def display_warning_message(self):
                 if not hasattr(self, "warning_message"):
@@ -629,6 +636,110 @@ class InstrumentTracker:
 
                 self.clear_game_data()
                 self.display_start_screen()
+
+
+        def process_trial(self, latency, scale, trial_data_file, target_data_file):
+                '''
+                Calculatetes performance metrics for current trial
+                args:
+                returns:
+                    - input: (latency, scale)
+                    - metric_dict: dictionary: {peformance_metric: value}
+                '''
+
+                df = pd.read_csv(trial_data_file)
+                target_df = pd.read_csv(target_data_file)
+
+                # Find the indices where "click" is True
+                click_indices = df.index[df['click']]
+                df_noclick = df[~df["click"]]
+
+                if len(click_indices) != 10:
+                    print(f"Warning! Data for {latency} latency and {scale} scale has {len(click_indices)} clicks!")
+
+                target_distances = []
+                movement_distances = []
+                movement_times = []
+                movement_speeds = []
+                target_errors = [] # deviations of select point to intended target point
+                target_distances = []
+                end_points = []
+                osd_set = []
+                t_eff_set = []
+
+                # Calculate mean and standard deviation of sampling rate in motion data file
+                dt = df_noclick["time"].diff()
+                fs = 1.0 / dt
+                fs_mean = np.mean(fs)
+                fs_std = np.std(fs)
+                if fs_std > 5:
+                    print(f"Warning! Sampling Rate mean is {fs_mean}, std is {fs_std}")
+
+
+                # # # Generate figure for metrics
+                # # fig, axes = plt.subplots(2, 4, figsize=(24, 12))
+
+                # Split the data into segments using the click indices
+                for i in range(len(click_indices)-1):
+                    
+                    # Segment data by clicks 
+                    start_idx = click_indices[i]
+                    end_idx = click_indices[i+1]
+                    segment = df.iloc[start_idx:end_idx]
+                    
+
+                    start_point = np.array([df['ins_x'][start_idx], df['ins_y'][start_idx]]) 
+                    end_point = np.array([df['ins_x'][end_idx], df['ins_y'][end_idx]])
+                    target_to = np.array([target_df['0'][i+1], target_df['1'][i+1]])
+                    target_from = np.array([target_df['0'][i], target_df['1'][i]])
+                    movement_axis = target_to - start_point # defined from motion start point to target center
+                    trans_end_point = transform_2d_coordinate(end_point, movement_axis, target_to) # transform end points to target frame
+                    target_distance_signal = np.linalg.norm(segment[['ins_x', 'ins_y']].values - target_to, axis=1)
+                    osd = compute_osd(target_distance_signal, np.array(segment['time']))
+                    travel_distance = sum(((segment['ins_x'].diff().fillna(0))**2 + (segment['ins_y'].diff().fillna(0))**2)**0.5)
+                    translation_efficiency = np.linalg.norm(movement_axis) / travel_distance
+                    
+                    osd_set.append(osd)
+                    end_points.append(trans_end_point)
+                    movement_distances.append(math.dist(start_point, end_point)) # Euclidean dist between start and end points
+                    movement_times.append(df['time'][end_idx] - df['time'][start_idx])
+                    movement_speeds.append(movement_distances[-1] / movement_times[-1])
+                    target_distances.append(math.dist(target_from, target_to))
+                    target_errors.append(math.dist(end_point, target_to))
+                    t_eff_set.append(translation_efficiency)
+
+                total_osd = np.sum(osd_set)
+                avg_osd = np.mean(osd_set)
+                avg_movement_speed = np.mean(np.array(movement_distances) / np.array(movement_times))
+                avg_target_error = np.mean(target_errors)
+                total_target_error = np.sum(target_errors)
+                target_error_rate = (sum(1 for error in target_errors if error > 20) / len(target_errors)) * 100
+                effective_distance = np.mean(movement_distances)
+                end_point_std = np.linalg.norm(np.std(np.array(end_points), axis=0)) # standard deviation of end point scatter
+                effective_width = 4.133 * end_point_std
+                effective_difficulty = math.log2((effective_distance / effective_width) + 1)
+                # difficulty = math.log2((np.mean(target_distances) / 40) + 1)
+                # print('Target Distance = ', np.mean(target_distances), 'Theoretical ID = ', difficulty)
+                avg_movement_time = np.mean(movement_times)
+                throughput = effective_difficulty / avg_movement_time
+                avg_translation_efficiency = np.mean(t_eff_set)
+                total_error = avg_osd + avg_target_error
+
+                num_clutches = sum((df['clutch']) & (df['clutch'].shift(-1) == False))
+
+                current_obs_data = dict(
+                        latency = latency,
+                        scale = scale,
+                        throughput = throughput,
+                        avg_osd = avg_osd,
+                        avg_target_error = avg_target_error,
+                        total_error = total_error,
+                        avg_movement_speed = avg_movement_speed
+                )
+
+                self.obs_data.append(current_obs_data)
+
+                return current_obs_data
 
 
 if __name__ == "__main__":

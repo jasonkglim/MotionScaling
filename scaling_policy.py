@@ -11,20 +11,17 @@ class ScalingPolicy:
 	def random_scale(self, visited=None):
 		# TO DO fix this
 		if visited is None:
-			return random.choice(self.scale_domain)
+			return random.choice(self.scale_domain), "random"
 		else:
-			return random.choice([s for s in self.scale_domain if s not in visited])
-
-	def optimal_scale(self, metric):
-			pass
-
-	# adds new model data
-	def update(self, model):
-		pass
-
-	# returns control scale
-	def get_scale(self):
-		pass
+			return random.choice([s for s in self.scale_domain if s not in visited]), "random"
+		
+	def max_unc_scale(self, prediction_df, metric):
+		s =  prediction_df.loc[prediction_df.groupby('latency')[f"{metric}_var"].idxmax()]['scale'].values[0]
+		return s, "max_uncertainty"
+	
+	def optimal_scale(self, prediction_df, metric):
+		optimal_scale = prediction_df.loc[prediction_df.groupby('latency')[metric].idxmax()]['scale'].values[0]
+		return optimal_scale, "optimal"
 
 
 # Chooses greedily half the time, otw pick scale with highest uncertainty
@@ -41,12 +38,7 @@ class BalancedScalingPolicy(ScalingPolicy):
 		else:
 			return self.random_scale()
 		
-	def optimal_scale(self, prediction_df, metric):
-		optimal_scale = prediction_df.loc[prediction_df.groupby('latency')[metric].idxmax()]['scale'].values[0]
-		return optimal_scale
 	
-	def max_unc_scale(self, prediction_df, metric):
-		s =  prediction_df.loc[prediction_df.groupby('latency')[f"{metric}_var"].idxmax()]['scale'].values[0]
-		return s
 	
-
+	
+	

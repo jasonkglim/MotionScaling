@@ -110,7 +110,7 @@ class BayesRegression(PerformanceModel):
 
 	def add_training_data(self, train_inputs, train_output_dict):
 		# TO DO: catch exceptions for bad args
-		if True: # len(self.X) == 0: # if uninitialized
+		if len(self.X) == 0: # if uninitialized
 			self.X = np.array(train_inputs)
 			self.input_dim = len(self.X)
 			self.num_examples = len(self.X[0])
@@ -120,14 +120,14 @@ class BayesRegression(PerformanceModel):
 
 			for metric, data in train_output_dict.items():
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
-		# else: # Already have some data
-		# 	self.X = np.concatenate((self.X, train_inputs), 1)
-		# 	self.num_examples = len(self.X)
-		# 	if self.transform:
-		# 		self.X_trans = np.concatenate((self.X_trans, self.poly.transfrom(train_inputs)))
-		# 	for metric, data in train_output_dict.items():
-		# 		data = np.array(data).reshape((-1, 1)) # convert to np column vector
-		# 		self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 1)
+		else: # Already have some data
+			self.X = np.concatenate((self.X, train_inputs), 1)
+			self.num_examples = len(self.X)
+			if self.transform:
+				self.X_trans = np.concatenate((self.X_trans, self.poly.transform(train_inputs.T).T), 1)
+			for metric, data in train_output_dict.items():
+				data = np.array(data).reshape((-1, 1)) # convert to np column vector
+				self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 1)
 		
 		self.set_prior(0, 1e3) # TO DO change this!
 

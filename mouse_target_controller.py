@@ -24,8 +24,9 @@ class InstrumentTracker:
                 self.param_file = f"{data_folder}/tested_params.csv"
 
                 # Setting up game parameters
-                self.latency_domain = [0.25] #[round(0.25 * i, 2) for i in range(4)]
-                self.scale_domain = np.round(np.arange(0.1, 1.1, 0.1), 1)
+                self.latency_domain =  [0.25] #[round(0.25 * i, 2) for i in range(4)]
+                self.scale_domain = [0.075, 0.1, 0.15, 0.2, 0.4, 0.7, 1.0] #np.round(np.arange(0.1, 1.1, 0.1), 1)
+                self.scale_set = [0.075, 0.1, 0.15, 0.2, 0.4, 0.7, 1.0] * 4
                 self.target_distance = 222
                 self.target_width = 40
                 self.visited_params = dict(
@@ -44,10 +45,12 @@ class InstrumentTracker:
 
                 # Initialize Models
                 self.model = BayesRegression()
+                self.model.set_poly_transform(degree=2)
                 self.scaling_policy = BalancedScalingPolicy(scale_domain=self.scale_domain)
                 # Set prior?
                 # Choose init conditions
-                self.control_scale = 0.6 # TO DO: later can be replaced with optimal from prior
+                self.trial_num = 0
+                self.control_scale = self.scale_set[self.trial_num] # TO DO: later can be replaced with optimal from prior
 
 
                 # Removing unnecessary param combos
@@ -92,7 +95,6 @@ class InstrumentTracker:
                 # random.shuffle(self.game_params)
 
                 # self.total_trials = len(self.game_params)
-                self.trial_num = 0
                 # print("Total trials left: ", total_trials)
                 
                 # Setting up main GUI
