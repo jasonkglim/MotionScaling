@@ -2,7 +2,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_folder = "controller_data_files/50-50_greedy_max_unc"
+data_folder = "controller_data_files/fixedTestSet_maxUnc"
 with open(f"{data_folder}/eval_data.pkl", "rb") as f:
     eval_data = pickle.load(f)
 

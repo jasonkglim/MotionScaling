@@ -143,13 +143,22 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 # player_df = all_datasets[player]
 # player_df = player_df[player_df["latency"] == 0.25]
 
-save_data_folder = "controller_data_files/50-50_greedy_max_unc"
+save_data_folder = "controller_data_files/fixedTestSet_maxUnc"
 os.makedirs(save_data_folder, exist_ok=True)
+
+# Read in full data
 player_df_full = pd.read_csv("data_files/user_jason_new/obs_metric_data.csv", index_col=0)
-player_df_avg = player_df_full.groupby(["latency", "scale"]).mean().reset_index()
+groups = player_df_full.groupby(["latency", "scale"])
+player_df_avg = groups.mean().reset_index()
+
+train_choose_list = [0, 1, 2, 3]
+test_choose_list = [4]
+player_df_train = pd.concat([groups.agg(lambda x: x.iloc[i]).reset_index() for i in train_choose_list]).reset_index(drop=True)
+player_df_test = pd.concat([groups.agg(lambda x: x.iloc[i]).reset_index() for i in test_choose_list]).reset_index(drop=True)
+
 true_optimal_scale_throughput = player_df_avg.loc[player_df_avg.groupby('latency')["throughput"].idxmax()]['scale'].values[0]
 true_optimal_scale_error = player_df_avg.loc[player_df_avg.groupby('latency')["total_error"].idxmax()]['scale'].values[0]
-player_df = player_df_full.copy()
+# player_df = player_df_full.copy()
 metric_dict = {}
 mse_scores = {"throughput": [], "total_error": []}
 optimal_scale_errors = {"throughput": [], "total_error": []}
@@ -162,7 +171,6 @@ obs_df = pd.DataFrame()
 model = BayesRegression()
 model.set_poly_transform(degree=2)
 policy = BalancedScalingPolicy(scale_domain=scale_domain)
-prediction_df = player_df[["latency", "scale"]].copy()
 test_input = np.array([[l, s] for l in latency_domain for s in scale_domain]).T
 prediction_df = pd.DataFrame({
 	"latency": test_input[0,:],
@@ -175,7 +183,7 @@ control_scale, policy_choice = policy.random_scale()
 # policy_choice = "random"
 visited = []
 input_latency = 0.25
-for i in range(38): #, input_latency in enumerate(full_latency_list):
+for i in range(len(player_df_train)-2): #, input_latency in enumerate(full_latency_list):
 	print("Iteration ", i)
 	# while True:
 	# 	control_scale = policy.random_scale()
@@ -183,11 +191,11 @@ for i in range(38): #, input_latency in enumerate(full_latency_list):
 	# 		break # TO DO change so that it breaks if
 
 	# Select input_latency?
-	filtered_df = player_df[(player_df["latency"] == input_latency) & (player_df["scale"] == control_scale)]
+	filtered_df = player_df_train[(player_df_train["latency"] == input_latency) & (player_df_train["scale"] == control_scale)]
 	# current_obs_df = player_df[(player_df["latency"] == input_latency) & (player_df["scale"] == control_scale)].iloc[0]
 	current_obs_df = filtered_df.iloc[0:1]
 	print(current_obs_df)
-	player_df.drop(current_obs_df.index, inplace=True)
+	player_df_train.drop(current_obs_df.index, inplace=True)
 	obs_df = pd.concat([obs_df, current_obs_df])
 	# print(obs_df[["latency", "scale"]])
 	# add obs_data to training data of PerformanceModel
@@ -204,10 +212,8 @@ for i in range(38): #, input_latency in enumerate(full_latency_list):
 	prediction_dict = model.predict(test_input, prediction_df)
 
 	# Compute eval metrics
-	test_set = player_df.groupby(["latency", "scale"]).mean().reset_index()
-	prediction_df_test = pd.merge(prediction_df, test_set["scale"], on="scale", how="inner")
-	mse_scores_throughput = mean_squared_error(prediction_df_test["throughput"], test_set["throughput"])
-	mse_scores_error = mean_squared_error(prediction_df_test["total_error"], test_set["total_error"])
+	mse_scores_throughput = mean_squared_error(prediction_df["throughput"], player_df_test["throughput"])
+	mse_scores_error = mean_squared_error(prediction_df["total_error"], player_df_test["total_error"])
 	pred_optimal_scale_throughput = prediction_df.loc[prediction_df.groupby('latency')["throughput"].idxmax()]['scale'].values[0]
 	pred_optimal_scale_error = prediction_df.loc[prediction_df.groupby('latency')["total_error"].idxmax()]['scale'].values[0]
 	# optimal_scale_error_throughput = mean_squared_error(true_optimal_scale_throughput, pred_optimal_scale_throughput)
@@ -222,16 +228,20 @@ for i in range(38): #, input_latency in enumerate(full_latency_list):
 	# # Visualize
 	visualize_controller(obs_df, prediction_df, i, control_scale, policy_choice, save_data_folder)
 
-	found_scale = False
-	control_scale, policy_choice = policy.get_scale(prediction_df_test, latency=input_latency, metric="throughput")
-	# If chosen control_scale doesn't have any training points left, pick next most uncertain
-	level = 2 
-	# while not found_scale:
-	if control_scale not in player_df["scale"].value_counts():
-		found_scale = True
-		# else:
-		# 	control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput", latency=input_latency, level=level)
-		# 	level += 1
+	# 
+	# player_unused = player_df_train.groupby(["latency", "scale"]).mean().reset_index()
+	# prediction_df_stripped = pd.merge(prediction_df, player_unused["scale"], on="scale", how="inner")
+	# Obtain next control scale, making sure only scales that still exist in training set are selected
+	prediction_df_stripped = prediction_df[prediction_df["scale"].isin(player_df_train["scale"].unique())]
+	control_scale, policy_choice = policy.get_scale(prediction_df_stripped, latency=input_latency, metric="throughput")
+	# # If chosen control_scale doesn't have any training points left, pick next most uncertain
+	# level = 2 
+	# # while not found_scale:
+	# if control_scale not in player_df["scale"].value_counts():
+	# 	found_scale = True
+	# 	# else:
+	# 	# 	control_scale, policy_choice = policy.max_unc_scale(prediction_df, metric="throughput", latency=input_latency, level=level)
+	# 	# 	level += 1
 	
 
 
