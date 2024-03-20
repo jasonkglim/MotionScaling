@@ -8,13 +8,13 @@ class ScalingPolicy:
 		self.scale_domain = scale_domain
 		return
 	
-	def random_scale(self, visited=None):
-		# TO DO fix this
-		if visited is None:
-			return random.choice(self.scale_domain), "random"
+	def random_scale(self, prediction_df  = None):
+		if prediction_df is None:
+			return random.choice([s for s in self.scale_domain]), "random"
 		else:
-			return random.choice([s for s in self.scale_domain if s not in visited]), "random"
+			return random.choice([s for s in prediction_df["scale"].values]), "random"
 		
+
 	def max_unc_scale(self, prediction_df, metric, latency, level=1):
 		# Ensure 'level' is at least 1 since we're dealing with ranks starting from 1
 		level = max(level, 1)
@@ -46,12 +46,12 @@ class BalancedScalingPolicy(ScalingPolicy):
 
 	def get_scale(self, prediction_df, metric, latency):
 		r = random.random()
-		if r < 0.5:
+		if r < 0.333:
 			return self.optimal_scale(prediction_df, metric, latency)
-		elif r > 0.5:
+		elif r > 0.666:
 			return self.max_unc_scale(prediction_df, metric, latency)
 		else:
-			return self.random_scale()
+			return self.random_scale(prediction_df)
 		
 	
 	
