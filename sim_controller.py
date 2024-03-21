@@ -103,6 +103,44 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 	plt.close()
 
 
+def plot_full_data_set(groups):
+
+	fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+	fig.suptitle("Full Data")
+	scale = []
+	mean_tp = []
+	std_tp = []
+	mean_err = []
+	std_err = []
+
+	for name, data in groups:
+		scale.append(data["scale"].values[0])
+		mean_tp.append(data["throughput"].mean())
+		std_tp.append(data["throughput"].std())
+		mean_err.append(data["total_error"].mean())
+		std_err.append(data["total_error"].std())
+
+	mean_tp = np.array(mean_tp)
+	std_tp = np.array(std_tp)
+	mean_err = np.array(mean_err)
+	std_err = np.array(std_err)
+
+	axes[0].fill_between(scale, mean_tp-std_tp, mean_tp+std_tp)
+	axes[0].plot(scale, mean_tp, linestyle='--', marker='o', color='black')
+	axes[1].fill_between(scale, mean_err-std_err, mean_err+std_err)
+	axes[1].plot(scale, mean_err, linestyle='--', marker='o', color='black')
+
+	for name, data in groups:
+		axes[0].scatter(data["scale"], data["throughput"], color='red', marker='x')
+		axes[1].scatter(data["scale"], data["total_error"], color='red', marker='x')
+
+	axes[0].set_xlabel("Scale")
+	axes[0].set_ylabel("Throughput")
+	axes[1].set_xlabel("Scale")
+	axes[1].set_ylabel("Total Error")
+
+	plt.savefig("data_files/user_jason_new/full_data.png")
+	plt.show()
 
 	# Plot observed data
 	# fig, axes = plt.subplots(2, 3)
@@ -146,7 +184,9 @@ def visualize_controller(obs_df, prediction_df, iteration, control_scale, policy
 # Read in full data
 player_df_full = pd.read_csv("data_files/user_jason_new/obs_metric_data.csv", index_col=0)
 groups = player_df_full.groupby(["latency", "scale"])
+plot_full_data_set(groups)
 player_df_avg = groups.mean().reset_index()
+
 
 policy_type = "Greedy"
 
