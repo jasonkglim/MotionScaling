@@ -7,23 +7,30 @@ import numpy as np
 
 # Object for model results, stores models of different metrics
 class PerformanceModel:
-	def __init__(self, train_inputs=None, train_output_dict=None):
+	def __init__(self, train_inputs=[], train_output_dict=[]):
 		# TO DO: catch exception of bad args (given only inputs)
-		if train_inputs == None:
+		# If not initialized with any training data..
+		if len(train_inputs) == 0:
 			self.X = []
 			self.y_dict = {}
 			self.input_dim = 0
 			self.num_examples = 0
-		if train_inputs != None:
-			self.X = train_inputs
+		else:			
+			self.X = np.array(train_inputs)
+			# Assumes 1D array means set of 1D examples
+			if len(self.X.shape) == 1:
+				self.X = self.X.reshape(1, -1) 
 			self.input_dim = self.X.shape[0]
 			self.num_examples = self.X.shape[1]
+			self.y_dict = {}
 			for metric, data in train_output_dict.items():
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
 		
 
 	def train(self):
 		pass
+
+	
 		
 
 
@@ -50,36 +57,94 @@ def PolyRegression(train_inputs, train_outputs, test_inputs, degree = 2):
 	return Y_pred, params
 
 
-## Gaussian Process Regression
-def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
+# ## Gaussian Process Regression
+# def GPRegression(train_inputs, train_outputs, test_inputs, kernel):
 
-	# Define the Gaussian Process kernel
-	# kernel = ConstantKernel() * RBF() # Default RBF
-	# kernel = ConstantKernel() * RationalQuadratic() # Rational Quadratic
+# 	# Define the Gaussian Process kernel
+# 	# kernel = ConstantKernel() * RBF() # Default RBF
+# 	# kernel = ConstantKernel() * RationalQuadratic() # Rational Quadratic
 
-	# Initialize the Gaussian Process Regressor with the chosen kernel
-	gp_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, random_state=42)
+# 	# Initialize the Gaussian Process Regressor with the chosen kernel
+# 	gp_model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, random_state=42)
 
-	# Fit the model to the training data
-	gp_model.fit(train_inputs, train_outputs)
+# 	# Fit the model to the training data
+# 	gp_model.fit(train_inputs, train_outputs)
 
-	# Get mean and std of predictive distributions
-	pred_mean, pred_std = gp_model.predict(test_inputs, return_std=True)
+# 	# Get mean and std of predictive distributions
+# 	pred_mean, pred_std = gp_model.predict(test_inputs, return_std=True)
 
-	return pred_mean, pred_std, gp_model.kernel_
+# 	return pred_mean, pred_std, gp_model.kernel_
+class GPRegression(PerformanceModel):
+	def __init__(self, train_inputs=[], train_output_dict=[], kernel=""):
+		super().__init__(train_inputs, train_output_dict)
+		self.prediction_dict = {}
+		self.kernel = kernel
+		self.kernel_params = {}
+		# if self.kernel:
+		# 	self.gp_model = GaussianProcessRegressor(kernel=self.kernel,
+		# 											n_restarts_optimizer=10,
+		# 											random_state=42)
 
+	def add_training_data(self, train_inputs=[], train_output_dict=[]):
+		# TO DO: catch exceptions for bad args
+		if len(self.X) == 0: # if uninitialized
+			self.X = np.array(train_inputs)
+			if len(self.X.shape) == 1:
+				self.X = self.X.reshape(-1, 1) # Assumes a 1D array represents list of 1D examples
+			self.num_examples = self.X.shape[0]
+			self.input_dim = self.X.shape[1]
+			# if self.transform:
+			# 	self.X_trans = self.poly.fit_transform(train_inputs.T).T
+			# 	self.input_dim = len(self.X_trans)
+			# if self.flag_homogenize:
+			# 	self.homogenize()
+			# self.prior_mean = np.zeros((self.input_dim, 1))
+			# self.prior_covar = np.identity(self.input_dim) * 1e3
+			# self.set_prior(self.prior_mean, self.prior_covar)
+			for metric, data in train_output_dict.items():
+				self.y_dict[metric] = np.array(data)
+		else: # Already have some data
+			self.X = np.concatenate((self.X, train_inputs), 0)
+			self.num_examples = self.X.shape[0]
+			# if self.transform:
+			# 	self.X_trans = np.concatenate((self.X_trans, self.poly.transform(train_inputs.T).T), 0)
+			for metric, data in train_output_dict.items():
+				data = np.array(data).reshape((-1, 1)) # convert to np column vector
+				self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 0)
+
+	def train_predict(self, test_input, prediction_df):
+		for metric, data in self.y_dict.items():
+			gp_model = GaussianProcessRegressor(kernel=self.kernel,
+													n_restarts_optimizer=10,
+													random_state=42)
+			gp_model.fit(self.X, data)
+			pred_mean, pred_std = gp_model.predict(test_input, return_std=True)
+			self.kernel_params[metric] = gp_model.kernel_
+			self.prediction_dict[metric] = (pred_mean, pred_std)
+			if prediction_df is not None:
+				prediction_df[metric] = pred_mean
+				prediction_df[metric] = pred_std
+			
+		return self.prediction_dict, self.kernel_params
 
 ## Bayesian Linear Regression
 class BayesRegression(PerformanceModel):
-	def __init__(self, train_inputs=None, train_output_dict=None, noise=1):
+	def __init__(self, train_inputs=[], train_output_dict=[], noise=1):
 		super().__init__(train_inputs, train_output_dict)
+		# Initialize prior mean, default is 0 and identity
+		# if len(prior_mean) == 0:
+		# 	self.set_prior(0, )
+		self.homogenize = False
+
 		if len(self.X) > 0:
 			self.prior_mean = np.zeros((self.input_dim, 1))
 			self.prior_covar = np.identity(self.input_dim)
+			self.set_prior(self.prior_mean, self.prior_covar)
 		self.noise = noise # Defines the variance of gaussian observation noise
 		self.posterior_dict = {}
 		self.prediction_dict = {}
 		self.transform = False
+		# self.set_prior(self.prior_mean)
 
 	def set_poly_transform(self, degree):
 		'''
@@ -94,7 +159,13 @@ class BayesRegression(PerformanceModel):
 			# Resize prior
 			self.set_prior(0, 1e3) # TO DO change this!
 	
-		
+	# Call to active homogenous coordinates
+	def homogenize(self):
+		self.flag_homogenize = True
+		if len(self.X) > 0:
+			self.X = np.vstack((self.X, np.ones(self.num_examples)))
+			self.input_dim = len(self.X)
+		return
 
 
 	# Define custom prior for weights
@@ -117,7 +188,11 @@ class BayesRegression(PerformanceModel):
 			if self.transform:
 				self.X_trans = self.poly.fit_transform(train_inputs.T).T
 				self.input_dim = len(self.X_trans)
-
+			# if self.flag_homogenize:
+			# 	self.homogenize()
+			self.prior_mean = np.zeros((self.input_dim, 1))
+			self.prior_covar = np.identity(self.input_dim) * 1e3
+			self.set_prior(self.prior_mean, self.prior_covar)
 			for metric, data in train_output_dict.items():
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
 		else: # Already have some data
@@ -129,7 +204,7 @@ class BayesRegression(PerformanceModel):
 				data = np.array(data).reshape((-1, 1)) # convert to np column vector
 				self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 1)
 		
-		self.set_prior(0, 1e3) # TO DO change this!
+		# self.set_prior(0, 1e3) # TO DO change this!
 
 	# Computes poseterior parameters from training data and prior 
 	def train(self):
@@ -165,12 +240,14 @@ class BayesRegression(PerformanceModel):
 			test_input: array: each column represents an input, should be size input_dim x num_inputs
 		'''
 		test_input = np.array(test_input)
+		if len(test_input.shape) == 1:
+			test_input = test_input.reshape(1, -1)
 		if self.transform:
 			test_input = self.poly.transform(test_input.T).T
 		for metric, (posterior_mean, posterior_covar) in self.posterior_dict.items():
 			pred_mean = test_input.T @ posterior_mean
 			pred_covar = test_input.T @ posterior_covar @ test_input
-			self.prediction_dict[metric] = (pred_mean, pred_covar)
+			self.prediction_dict[metric] = (pred_mean, np.diagonal(pred_covar))
 			if prediction_df is not None:
 				prediction_df[metric] = pred_mean
 				prediction_df[metric+"_var"] = np.diagonal(pred_covar)

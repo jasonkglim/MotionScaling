@@ -20,7 +20,10 @@ class ScalingPolicy:
 		level = max(level, 1)
 
 		# Filter the DataFrame for the specified latency value
-		filtered_df = prediction_df[prediction_df['latency'] == latency]
+		if "latency" in prediction_df.columns:
+			filtered_df = prediction_df[prediction_df['latency'] == latency]
+		else:
+			filtered_df = prediction_df.copy()
 
 		# Find the nth largest value by metric_var within the filtered DataFrame
 		# If there are fewer rows than 'level', handle appropriately
@@ -33,8 +36,11 @@ class ScalingPolicy:
 			return np.nan, "error"
 		
 
-	def optimal_scale(self, prediction_df, metric, latency):
-		filtered_df = prediction_df[prediction_df['latency'] == latency]
+	def optimal_scale(self, prediction_df, metric, latency=None):
+		if latency is not None:
+			filtered_df = prediction_df[prediction_df['latency'] == latency]
+		else:
+			filtered_df = prediction_df.copy()
 		optimal_scale = filtered_df.loc[filtered_df[metric].idxmax()]['scale']
 		return optimal_scale, "optimal"
 

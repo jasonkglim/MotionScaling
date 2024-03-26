@@ -144,6 +144,30 @@ def plot_full_data_set(groups):
 
 	# Plot observed data
 	# fig, axes = plt.subplots(2, 3)
+
+def plot_2d(obs_df, prediction_df, iteration, control_scale, policy_choice, save_data_folder):
+	
+	fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+	fig.suptitle(f"Control Scale Chosen: {control_scale} by {policy_choice}")
+	
+	axes[0].scatter(obs_df["scale"], obs_df["throughput"])
+	axes[0].plot(prediction_df["scale"], prediction_df["throughput"], color='black', linestyle='--')
+	axes[0].fill_between(prediction_df["scale"], 
+					  prediction_df["throughput"]-prediction_df["throughput_var"],
+					  prediction_df["throughput"]+prediction_df["throughput_var"],
+					  alpha=0.3)
+	
+	axes[1].scatter(obs_df["scale"], obs_df["total_error"])
+	axes[1].plot(prediction_df["scale"], prediction_df["total_error"], color='black', linestyle='--')
+	axes[1].fill_between(prediction_df["scale"], 
+					  prediction_df["total_error"]-prediction_df["total_error_var"],
+					  prediction_df["total_error"]+prediction_df["total_error_var"],
+					  alpha=0.3)
+	
+	os.makedirs(f"{save_data_folder}/2d", exist_ok=True)
+	plt.savefig(f"{save_data_folder}/2d/{iteration}.png")
+	plt.close()
+	
 	
 
 # # Pattern to match the data files
@@ -188,7 +212,7 @@ plot_full_data_set(groups)
 player_df_avg = groups.mean().reset_index()
 
 
-policy_type = "Greedy"
+policy_type = "maxUnc_new"
 
 for test_set_num in range(5):
 
@@ -214,6 +238,7 @@ for test_set_num in range(5):
 	metric_list = ["throughput", "total_error"] # metrics to be tracked and modeled by PerformanceModel
 	obs_df = pd.DataFrame()
 	model = BayesRegression()
+	# model.homogenize(True)
 	model.set_poly_transform(degree=2)
 	policy = BalancedScalingPolicy(scale_domain=scale_domain)
 	test_input = np.array([[l, s] for l in latency_domain for s in scale_domain]).T
@@ -272,7 +297,7 @@ for test_set_num in range(5):
 
 		# # Visualize
 		visualize_controller(obs_df, prediction_df, i, control_scale, policy_choice, save_data_folder)
-
+		plot_2d(obs_df, prediction_df, i, control_scale, policy_choice, save_data_folder)
 		# 
 		# player_unused = player_df_train.groupby(["latency", "scale"]).mean().reset_index()
 		# prediction_df_stripped = pd.merge(prediction_df, player_unused["scale"], on="scale", how="inner")
