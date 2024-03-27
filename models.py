@@ -4,27 +4,37 @@ from sklearn.linear_model import LinearRegression
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, RationalQuadratic
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Object for model results, stores models of different metrics
 class PerformanceModel:
 	def __init__(self, train_inputs=[], train_output_dict=[]):
-		# TO DO: catch exception of bad args (given only inputs)
-		# If not initialized with any training data..
-		if len(train_inputs) == 0:
+		# TO DO: catch exceptions of bad args (given only inputs, etc.)
+		'''
+		Base Class for modeling performance metrics
+		args:
+			- train_input: base class assumes row vector format
+			- train_output_dict: dictionary of output values for each metric
+		'''
+		if len(train_inputs) == 0: # If not initialized with any training data..
 			self.X = []
 			self.y_dict = {}
 			self.input_dim = 0
 			self.num_examples = 0
 		else:			
 			self.X = np.array(train_inputs)
-			# Assumes 1D array means set of 1D examples
-			if len(self.X.shape) == 1:
-				self.X = self.X.reshape(1, -1) 
-			self.input_dim = self.X.shape[0]
-			self.num_examples = self.X.shape[1]
+			if len(self.X.shape) <= 1: # Assumes 1D array means set of 1D examples
+				self.X = self.X.reshape(-1, 1) 
+			self.num_examples = self.X.shape[0]
+			self.input_dim = self.X.shape[1]
 			self.y_dict = {}
 			for metric, data in train_output_dict.items():
+				data = np.array(data)
+				if data.shape[0] != self.num_examples:
+					print("Number of input/output examples don't match!!")
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
+				
+				
 		
 
 	def train(self):
@@ -80,6 +90,7 @@ class GPRegression(PerformanceModel):
 		self.prediction_dict = {}
 		self.kernel = kernel
 		self.kernel_params = {}
+		self.test_input = []
 		# if self.kernel:
 		# 	self.gp_model = GaussianProcessRegressor(kernel=self.kernel,
 		# 											n_restarts_optimizer=10,
@@ -89,7 +100,7 @@ class GPRegression(PerformanceModel):
 		# TO DO: catch exceptions for bad args
 		if len(self.X) == 0: # if uninitialized
 			self.X = np.array(train_inputs)
-			if len(self.X.shape) == 1:
+			if len(self.X.shape) <= 1:
 				self.X = self.X.reshape(-1, 1) # Assumes a 1D array represents list of 1D examples
 			self.num_examples = self.X.shape[0]
 			self.input_dim = self.X.shape[1]
@@ -102,8 +113,11 @@ class GPRegression(PerformanceModel):
 			# self.prior_covar = np.identity(self.input_dim) * 1e3
 			# self.set_prior(self.prior_mean, self.prior_covar)
 			for metric, data in train_output_dict.items():
-				self.y_dict[metric] = np.array(data)
+				self.y_dict[metric] = np.array(data).reshape(-1, 1)
 		else: # Already have some data
+			train_inputs = np.array(train_inputs)
+			if len(train_inputs.shape) <= 1:
+				train_inputs = train_inputs.reshape(-1, 1)
 			self.X = np.concatenate((self.X, train_inputs), 0)
 			self.num_examples = self.X.shape[0]
 			# if self.transform:
@@ -112,13 +126,21 @@ class GPRegression(PerformanceModel):
 				data = np.array(data).reshape((-1, 1)) # convert to np column vector
 				self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 0)
 
-	def train_predict(self, test_input, prediction_df):
+	def train_predict(self, test_input=[], prediction_df=None):
 		for metric, data in self.y_dict.items():
 			gp_model = GaussianProcessRegressor(kernel=self.kernel,
 													n_restarts_optimizer=10,
 													random_state=42)
 			gp_model.fit(self.X, data)
-			pred_mean, pred_std = gp_model.predict(test_input, return_std=True)
+			if len(self.test_input) > 0: # If self.test_input has been set, it overrides
+				if len(test_input) > 0:  
+					print("Self.test_input already set, using it instead.")
+				pred_mean, pred_std = gp_model.predict(self.test_input, return_std=True)
+			elif len(test_input) > 0 and len(self.test_input == 0):
+				pred_mean, pred_std = gp_model.predict(test_input, return_std=True)
+			else:
+				print("No test input available")
+
 			self.kernel_params[metric] = gp_model.kernel_
 			self.prediction_dict[metric] = (pred_mean, pred_std)
 			if prediction_df is not None:
@@ -126,6 +148,22 @@ class GPRegression(PerformanceModel):
 				prediction_df[metric] = pred_std
 			
 		return self.prediction_dict, self.kernel_params
+	
+	def set_test_input(self, test_input):
+		self.test_input = np.array(test_input)
+		if len(self.test_input.shape) <= 1:
+			self.test_input = self.test_input.reshape(-1, 1)
+		# elif self.test_input.shape[1] != self.X.shape[1]:
+		# 	print("dimension error")
+
+	# def visualize(self):
+	# 	# by default use self.test_input
+	# 	self.train_predict()
+
+	# 	fig, ax = plt.subplots(1, len(self.y_dict.keys()), )
+	# 	for metric, data, i in enumerate(self.y_dict.items()):
+	# 		ax[i].plot(self.X, data, marker='o')
+	# 		ax[i].plot(self.test_input, self.prediction_dict[metric][0])
 
 ## Bayesian Linear Regression
 class BayesRegression(PerformanceModel):
