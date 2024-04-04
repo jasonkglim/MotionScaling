@@ -62,4 +62,16 @@ class BalancedScalingPolicy(ScalingPolicy):
 	
 	
 	
-	
+# class StepSearch(ScalingPolicy):
+# 	def __init__(self, scale_domain, prediction_df=None, use_metric=""):
+# 		super().__init__(scale_domain)
+# 		self.prediction_df = prediction_df
+# 		self.use_metric = use_metric
+		
+# 	def get_scale(self, prediction_df=None, use_metric=""):
+# 		if prediction_df is not None: # Update model if necessary
+# 			self.prediction_df = prediction_df
+# 		if use_metric: # Use different metric?
+# 			self.use_metric = use_metric
+
+		
