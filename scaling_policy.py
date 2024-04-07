@@ -4,9 +4,21 @@ import random
 
 # Implements a scaling policy that chooses a control scale from performance model data
 class ScalingPolicy:
-	def __init__(self, scale_domain):
+	def __init__(self, scale_domain, policy_type=""):
 		self.scale_domain = scale_domain
+		self.policy_type = policy_type
 		return
+	
+	def get_scale(self, prediction_df, metric, latency=None):
+		if self.policy_type == "maxUnc":
+			return self.max_unc_scale(prediction_df, metric, latency)
+		if self.policy_type == "greedy":
+			return self.optimal_scale(prediction_df, metric, latency)
+		if self.policy_type == "random":
+			return self.random_scale(prediction_df)
+		print("Policy type not set!")
+		return None, ""
+
 	
 	def random_scale(self, prediction_df  = None):
 		if prediction_df is None:
@@ -15,7 +27,7 @@ class ScalingPolicy:
 			return random.choice([s for s in prediction_df["scale"].values]), "random"
 		
 
-	def max_unc_scale(self, prediction_df, metric, latency, level=1):
+	def max_unc_scale(self, prediction_df, metric, latency=None, level=1):
 		# Ensure 'level' is at least 1 since we're dealing with ranks starting from 1
 		level = max(level, 1)
 
