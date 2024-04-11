@@ -62,14 +62,14 @@ class BalancedScalingPolicy(ScalingPolicy):
 	def __init__(self, scale_domain):
 		super().__init__(scale_domain)
 
-	def get_scale(self, prediction_df, metric, latency):
+	def get_scale(self, prediction_df, metric, latency=None):
 		r = random.random()
-		if r < 0.333:
+		if r < 0.5:
 			return self.optimal_scale(prediction_df, metric, latency)
-		elif r > 0.666:
+		elif r > 0.5:
 			return self.max_unc_scale(prediction_df, metric, latency)
-		else:
-			return self.random_scale(prediction_df)
+		# else:
+		# 	return self.random_scale(prediction_df)
 		
 	
 	

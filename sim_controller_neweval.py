@@ -145,14 +145,15 @@ def plot_full_data_set(groups):
 	# Plot observed data
 	# fig, axes = plt.subplots(2, 3)
 
-def plot_2d(obs_data, prediction_df, iteration, control_scale, policy_choice, save_data_folder):
+def plot_2d(ref_df, obs_data, prediction_df, iteration, control_scale, policy_choice, save_data_folder, trial):
 	
-	fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-	fig.suptitle(f"Control Scale Chosen: {control_scale} by {policy_choice}")
+	plt.figure()
+	plt.title(f"Control Scale Chosen: {control_scale} by {policy_choice}")
 	
-	axes[0].scatter(obs_data["scale"], obs_data["throughput"])
-	axes[0].plot(prediction_df["scale"], prediction_df["throughput"], color='black', linestyle='--')
-	axes[0].fill_between(prediction_df["scale"], 
+	plt.scatter(obs_data["scale"], obs_data["throughput"], color='blue')
+	plt.scatter(ref_df["scale"], ref_df["throughput"], marker='x', color='green')
+	plt.plot(prediction_df["scale"], prediction_df["throughput"], color='black', linestyle='--')
+	plt.fill_between(prediction_df["scale"], 
 					  prediction_df["throughput"]-prediction_df["throughput_var"],
 					  prediction_df["throughput"]+prediction_df["throughput_var"],
 					  alpha=0.3)
@@ -164,8 +165,7 @@ def plot_2d(obs_data, prediction_df, iteration, control_scale, policy_choice, sa
 	# 				  prediction_df["total_error"]+prediction_df["total_error_var"],
 	# 				  alpha=0.3)
 	
-	os.makedirs(f"{save_data_folder}/2d", exist_ok=True)
-	plt.savefig(f"{save_data_folder}/2d/{iteration}.png")
+	plt.savefig(f"{save_data_folder}/trial{trial}_iter{iteration}.png")
 	plt.close()
 	
 	
@@ -215,20 +215,20 @@ ref_df = pd.DataFrame({
 obs_var = 0.2 # assumed variance for sampling training points
 true_optimal_scale_throughput = 0.6 
 metric_list = ["throughput"] # metrics to be tracked and modeled by PerformanceModel
-test_input = np.linspace(0, 1, 100)
+test_input = scale_domain #np.linspace(0, 1, 100)
 
 # Initialize Scaling policy
 policy_type = "maxUnc"
 policy = ScalingPolicy(scale_domain=scale_domain, policy_type=policy_type)
 
 max_n_train = 10 # max number of training points for each simulated trial
-num_trials = 50
+num_trials = 100
 
 # Simulate multiple trials
 for trial in range(num_trials):
-
+	print("Trial ", trial)
 	# Save file paths
-	save_data_folder = f"controller_data_files/neweval/{policy_type}/trial{trial}"
+	save_data_folder = f"controller_data_files/neweval/{policy_type}"
 	os.makedirs(save_data_folder, exist_ok=True)
 
 	# Init variables for evaluating trial
@@ -239,7 +239,7 @@ for trial in range(num_trials):
 	obs_metric_optimums = {"throughput": [], "total_error": []}
 
 	# Initialize data vars, models, and scaling policy for this trial
-	obs_data = {"throughput": []}
+	obs_data = {"scale": [], "throughput": []}
 	obs_df = pd.DataFrame()
 	model = BayesRegression()
 	# model.homogenize(True)
@@ -253,7 +253,7 @@ for trial in range(num_trials):
 		"scale": np.array(scale_domain)
 	})
 
-	control_scale = 0.5
+	control_scale = 0.4
 	policy_choice = "init"
 	for i in range(max_n_train):
 		print("Iteration ", i)
@@ -264,10 +264,10 @@ for trial in range(num_trials):
 		obs_data["scale"].append(control_scale)
 		obs_data["throughput"].append(sample_obs)
 
-		model.add_training_data(obs_input = control_scale, obs_output_dict={"throughput": sample_obs})
+		model.add_training_data(train_inputs = control_scale, train_output_dict={"throughput": sample_obs})
 		model.train()
 		
-		prediction_dict = model.predict(test_input, prediction_df_dense)
+		prediction_dict = model.predict(test_input, prediction_df)
 
 		# Compute eval metrics
 		mse_scores_throughput = mean_squared_error(prediction_df["throughput"], ref_df["throughput"])
@@ -282,23 +282,30 @@ for trial in range(num_trials):
 		# mse_scores["total_error"].append(mse_scores_error)
 		optimal_scale_errors["throughput"].append(optimal_scale_error_throughput)
 		# optimal_scale_errors["total_error"].append(optimal_scale_error_error)
+		avg_throughput = np.mean(obs_data["throughput"])
+		max_throughput = np.max(obs_data["throughput"])
+		obs_metric_avgs["throughput"].append(avg_throughput)
+		obs_metric_optimums["throughput"].append(max_throughput)
 
 
 		# # Visualize
 		# visualize_controller(obs_df, prediction_df, i, control_scale, policy_choice, save_data_folder)
-		plot_2d(obs_data, prediction_df_dense, i, control_scale, policy_choice, save_data_folder)
+		if trial % 10 == 0:
+			plot_2d(ref_df, obs_data, prediction_df, i, control_scale, policy_choice, save_data_folder, trial)
 		# 
 
 		# Get next control_scale
-		control_scale, policy_choice = policy.get_scale(prediction_df)
+		control_scale, policy_choice = policy.get_scale(prediction_df, metric="throughput")
 		
 	### Save evaluation metrics
 	eval_data = dict(
 		mse_scores = mse_scores,
-		optimal_scale_errors = optimal_scale_errors
+		optimal_scale_errors = optimal_scale_errors,
+		obs_metric_avgs = obs_metric_avgs,
+		obs_metric_optimums = obs_metric_optimums
 	)
 
-	# with open(f"{save_data_folder}/eval_data.pkl", "wb") as f:
-	# 	pickle.dump(eval_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+	with open(f"{save_data_folder}/trial{trial}_eval_data.pkl", "wb") as f:
+		pickle.dump(eval_data, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 

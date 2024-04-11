@@ -221,11 +221,13 @@ class BayesRegression(PerformanceModel):
 		# TO DO: catch exceptions for bad args
 		if len(self.X) == 0: # if uninitialized
 			self.X = np.array(train_inputs)
-			self.input_dim = len(self.X)
-			self.num_examples = len(self.X[0])
+			if len(self.X.shape) <= 1:
+				self.X = self.X.reshape((-1, 1))
+			self.num_examples = self.X.shape[0]
+			self.input_dim = self.X.shape[1]
 			if self.transform:
-				self.X_trans = self.poly.fit_transform(train_inputs.T).T
-				self.input_dim = len(self.X_trans)
+				self.X_trans = self.poly.fit_transform(self.X)
+				self.input_dim = self.X_trans.shape[1]
 			# if self.flag_homogenize:
 			# 	self.homogenize()
 			self.prior_mean = np.zeros((self.input_dim, 1))
@@ -234,22 +236,25 @@ class BayesRegression(PerformanceModel):
 			for metric, data in train_output_dict.items():
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
 		else: # Already have some data
-			self.X = np.concatenate((self.X, train_inputs), 1)
-			self.num_examples = len(self.X)
+			train_inputs = np.array(train_inputs)
+			if len(train_inputs.shape) <= 1:
+				train_inputs = train_inputs.reshape((-1, 1))
+			self.X = np.concatenate((self.X, train_inputs), 0)
+			self.num_examples = self.X.shape[0]
 			if self.transform:
-				self.X_trans = np.concatenate((self.X_trans, self.poly.transform(train_inputs.T).T), 1)
+				self.X_trans = np.concatenate((self.X_trans, self.poly.transform(train_inputs)), 0)
 			for metric, data in train_output_dict.items():
 				data = np.array(data).reshape((-1, 1)) # convert to np column vector
-				self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 1)
+				self.y_dict[metric] = np.concatenate((self.y_dict[metric], data), 0)
 		
 		# self.set_prior(0, 1e3) # TO DO change this!
 
 	# Computes poseterior parameters from training data and prior 
 	def train(self):
 		if self.transform:
-			X = self.X_trans
+			X = self.X_trans.T
 		else:
-			X = self.X
+			X = self.X.T
 		for metric, y in self.y_dict.items():
 			y = np.array(y).reshape((-1, 1))
 			A = (X @ X.T / self.noise**2
@@ -275,13 +280,14 @@ class BayesRegression(PerformanceModel):
 		'''
 		Return mean and covar for predicted values over test_input
 		args:
-			test_input: array: each column represents an input, should be size input_dim x num_inputs
+			test_input: array in N x d format
 		'''
 		test_input = np.array(test_input)
-		if len(test_input.shape) == 1:
-			test_input = test_input.reshape(1, -1)
+		if len(test_input.shape) <= 1:
+			test_input = test_input.reshape((-1, 1))
 		if self.transform:
-			test_input = self.poly.transform(test_input.T).T
+			test_input = self.poly.transform(test_input)
+		test_input = test_input.T # Needs to be in d x N format for computation
 		for metric, (posterior_mean, posterior_covar) in self.posterior_dict.items():
 			pred_mean = test_input.T @ posterior_mean
 			pred_covar = test_input.T @ posterior_covar @ test_input
