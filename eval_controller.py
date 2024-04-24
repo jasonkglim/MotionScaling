@@ -3,13 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 policy_types = ["maxUnc", "greedy", "random", "50greedy50maxUnc"] #, "GreedyRandomMaxUnc"]
-
-fig_all, axes_all = plt.subplots(2, 2)
+policy_types_official = ["Min Entropy", "Greedy", "Random", "Balanced"]
+fig_all, axes_all = plt.subplots(2, 2, figsize=(12, 6))
 fig_all.suptitle(f"Policy Evaluation Metrics")
 
 num_trials = 100
 
-for policy_type in policy_types:
+for policy_type, policy_name in zip(policy_types, policy_types_official):
     avg_mse_tp = []
     avg_mse_err = []
     avg_ose_tp = []
@@ -60,20 +60,25 @@ for policy_type in policy_types:
     avg_metric_avgs = np.mean(np.array(all_metric_avgs), axis=0)
     avg_metric_optimums = np.mean(np.array(all_metric_optimums), axis=0)
 
-    axes_all[0, 0].plot(avg_mse_tp, label=policy_type)
+    axes_all[0, 0].plot(avg_mse_tp, label=policy_name, marker='o')
     axes_all[0, 0].set_title("MSE for Throughput")
+    axes_all[0, 0].set_xlabel("Training Points")
 
     # axes_all[0, 1].plot(avg_mse_err, label=policy_type)
     # axes_all[0, 1].set_title("MSE for Total Error")
 
-    axes_all[0, 1].plot(avg_ose_tp, label=policy_type)
+    axes_all[0, 1].plot(avg_ose_tp, label=policy_name, marker='o')
     axes_all[0, 1].set_title("Optimal Scale Error for Throughput")
+    axes_all[0, 1].set_xlabel("Training Points")
 
-    axes_all[1, 0].plot(avg_metric_avgs, label=policy_type)
+    axes_all[1, 0].plot(avg_metric_avgs, label=policy_name, marker='o')
     axes_all[1, 0].set_title("Average Observed Throughput")
+    axes_all[1, 0].set_xlabel("Training Points")
 
-    axes_all[1, 1].plot(avg_metric_optimums, label=policy_type)
+    axes_all[1, 1].plot(avg_metric_optimums, label=policy_name, marker='o')
     axes_all[1, 1].set_title("Maximum Observed Throughput")
+    axes_all[1, 1].set_xlabel("Training Points")
+
 
 axes_all[0, 0].legend()
 fig_all.tight_layout()
