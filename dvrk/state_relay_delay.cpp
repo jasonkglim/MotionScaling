@@ -156,7 +156,8 @@ int main(int argc, char **argv)
     state_buffer.push(msg)
     cur_time = get_current_time()
     while(cur_time - state_buffer.front()->time >= delay){
-        
+        publish(state_buffer.front())
+        state_buffer.pop()
     }
     
 
