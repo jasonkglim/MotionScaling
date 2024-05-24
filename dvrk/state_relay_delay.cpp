@@ -13,6 +13,9 @@ std::string lastStatePublished;
 geometry_msgs::Pose lastPosePublishedPose;
 geometry_msgs::PoseStamped lastPosePublishedPoseStamped;
 sensor_msgs::JointState lastJawRecieved;
+queue<std_msgs::String::ConstPtr> state_buffer;
+queue<geometry_msgs::Pose::ConstPtr> cart_buffer;
+queue<sensor_msgs::JointState::ConstPtr> jaw_buffer;
 
 ros::Publisher state_pub;
 ros::Publisher cartesian_pub;
@@ -70,7 +73,8 @@ bool arePosesEqualPoseStamped(geometry_msgs::PoseStamped pose1, geometry_msgs::P
 
 void stateCallback(const std_msgs::String::ConstPtr& msg){
     if(msg->data != lastStatePublished){
-        state_pub.publish(msg);
+        // state_pub.publish(msg);
+        state_buffer.push(msg);
         lastStatePublished = msg->data;
 	std::cout << "New state: " << lastStatePublished << std::endl;
     }
@@ -78,8 +82,11 @@ void stateCallback(const std_msgs::String::ConstPtr& msg){
 
 void cartesianCallbackPose(const geometry_msgs::Pose::ConstPtr& msg){
     if(lastStatePublished == "READY" && !arePosesEqualPose(lastPosePublishedPose, *msg)){
-        cartesian_pub.publish(msg);
-        jaw_pub.publish(lastJawRecieved);
+        // cartesian_pub.publish(msg);
+        // jaw_pub.publish(lastJawRecieved);
+
+        cart_buffer.push(msg)
+        jaw_buffer.push(lastJawRecieved)
 
         lastPosePublishedPose = *msg;
     }
@@ -87,8 +94,11 @@ void cartesianCallbackPose(const geometry_msgs::Pose::ConstPtr& msg){
 
 void cartesianCallbackPoseStamped(const geometry_msgs::PoseStamped::ConstPtr& msg){
     if(lastStatePublished == "READY" && !arePosesEqualPoseStamped(lastPosePublishedPoseStamped, *msg)){
-        cartesian_pub.publish(msg);
-        jaw_pub.publish(lastJawRecieved);
+        // cartesian_pub.publish(msg);
+        // jaw_pub.publish(lastJawRecieved);
+
+        cart_buffer.push(msg)
+        jaw_buffer.push(lastJawRecieved)
 
         lastPosePublishedPoseStamped = *msg;
     }
@@ -148,20 +158,20 @@ int main(int argc, char **argv)
     }
     ros::Subscriber jaw_sub   = n.subscribe(jaw_subscribe_topic,   10, jawCallback);
 
+    ros::spin();
+
     // My new code goes here?
-    
-    queue<std_msgs::String::ConstPtr> state_buffer;
-    queue<geometry_msgs::Pose::ConstPtr> cart_buffer;
-    queue<sensor_msgs::JointState::ConstPtr> jaw_buffer;
-    state_buffer.push(msg)
-    cur_time = get_current_time()
-    while(cur_time - state_buffer.front()->time >= delay){
-        publish(state_buffer.front())
-        state_buffer.pop()
+    cur_time = get_current_time();
+    while(cur_time - cart_buffer.front()->time >= delay){ // Does cartesian topic msg have timestamp?
+        cartesian_pub.publish(cart_buffer.front());
+        jaw_pub.publish(jaw_buffer.front());
+        cartesian_pub.pop();
+        jaw_pub.pop();
+        // state_buffer.pop();
+        cur_time = get_current_time();
     }
     
 
-    ros::spin();
 
     return 0;
 }
