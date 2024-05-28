@@ -14,11 +14,10 @@ std::string lastStatePublished;
 geometry_msgs::Pose lastPosePublishedPose;
 geometry_msgs::PoseStamped lastPosePublishedPoseStamped;
 sensor_msgs::JointState lastJawRecieved;
-ros::Duration lastDelayReceived;
 
 // Queues to buffer relayed messages
-std::queue<std_msgs::String::ConstPtr> state_buffer;
-std::queue<geometry_msgs::PoseStamped::ConstPtr> cart_buffer;
+// std::queue<std_msgs::String::ConstPtr> state_buffer;
+std::queue<std::pair<geometry_msgs::PoseStamped::ConstPtr, ros::Time>> cart_buffer;
 std::queue<sensor_msgs::JointState> jaw_buffer;
 
 ros::Publisher state_pub;
@@ -121,12 +120,6 @@ void jawCallback(const sensor_msgs::JointState::ConstPtr& msg){
     lastJawRecieved = *msg;
 }
 
-void delayCallback(const ros::Duration::ConstPtr& msg) {
-    if (*msg != lastDelayReceived) {
-        lastDelayReceived = *msg;
-    }
-}
-
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "state_relay");
@@ -180,10 +173,8 @@ int main(int argc, char **argv)
     // ros::spin();
 
     // My new code goes here?
-    // ros::Subscriber delay_sub = n.subscribe(delay_topic, 10, delayCallback)
-
-    ros::Rate loop_rate(100); // 100 Hz loop rate
-    ros::Duration lastDelayReceived(1.0); // hardcode delay for now
+    ros::Rate loop_rate(100); // 10 Hz loop rate
+    ros::Duration delay(1.0); // hardcode delay for now
 
     while (ros::ok()) {
         ros::spinOnce();
@@ -191,16 +182,11 @@ int main(int argc, char **argv)
         ros::Time front_timestamp(cart_buffer.front()->header.stamp.sec, cart_buffer.front()->header.stamp.nsec);
 
 	// front_timestamp = cart_buffer.front()->header.stamp.sec + std::pow(cart_buffer.front()->header.stamp.nsec, -9);
-        while (!cart_buffer.empty() && (current_time - front_timestamp) >= lastDelayReceived) {
+        while (!cart_buffer.empty() && (current_time - front_timestamp) >= delay) {
             cartesian_pub.publish(cart_buffer.front());
             jaw_pub.publish(jaw_buffer.front());
             cart_buffer.pop();
             jaw_buffer.pop();
-            if (!cart_buffer.empty()) {
-                front_timestamp.sec = cart_buffer.front()->header.stamp.sec
-                front_timestamp.nsec = cart_buffer.front()->header.stamp.nsec
-            }
-            
         }
         
         loop_rate.sleep();
