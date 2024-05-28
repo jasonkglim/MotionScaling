@@ -13,9 +13,11 @@ std::string lastStatePublished;
 geometry_msgs::Pose lastPosePublishedPose;
 geometry_msgs::PoseStamped lastPosePublishedPoseStamped;
 sensor_msgs::JointState lastJawRecieved;
-queue<std_msgs::String::ConstPtr> state_buffer;
-queue<geometry_msgs::Pose::ConstPtr> cart_buffer;
-queue<sensor_msgs::JointState::ConstPtr> jaw_buffer;
+
+// Queues to buffer relayed messages
+std::queue<std_msgs::String::ConstPtr> state_buffer;
+std::queue<geometry_msgs::Pose::ConstPtr> cart_buffer;
+std::queue<sensor_msgs::JointState::ConstPtr> jaw_buffer;
 
 ros::Publisher state_pub;
 ros::Publisher cartesian_pub;
@@ -121,23 +123,23 @@ int main(int argc, char **argv)
         std::cerr << "  -- Arg 4 = to publish cartesian topic name" << std::endl;
         std::cerr << "  -- Arg 5 = subscribed jaw topic name" << std::endl;
         std::cerr << "  -- Arg 6 = to publish jaw topic name" << std::endl;
-	std::cerr << "  -- Arg 7 = Pose or PoseStamped" << std::endl;
+	    std::cerr << "  -- Arg 7 = Pose or PoseStamped" << std::endl;
         return -1;
     }
 
     std::string state_subscribe_topic = argv[1];
-    std::string state_publish_topic   = argv[2];
+    std::string state_publish_topic = argv[2];
 
     std::string cart_subscribe_topic = argv[3];
-    std::string cart_publish_topic   = argv[4];
+    std::string cart_publish_topic = argv[4];
 
     std::string jaw_subscribe_topic = argv[5];
-    std::string jaw_publish_topic   = argv[6];
+    std::string jaw_publish_topic = argv[6];
 
     std::string pose_or_posestamped = argv[7]; 
 
 
-    state_pub     = n.advertise<std_msgs::String>   (state_publish_topic, 10);
+    state_pub = n.advertise<std_msgs::String>   (state_publish_topic, 10);
     if (pose_or_posestamped == "Pose") {
 	cartesian_pub = n.advertise<geometry_msgs::Pose>(cart_publish_topic,  10);
     } else if (pose_or_posestamped == "PoseStamped") {
@@ -145,7 +147,7 @@ int main(int argc, char **argv)
     } else {
 	std::cerr << "Arg 7 can only be Pose or PoseStamped!!!" << std::endl;
     } 
-    jaw_pub       = n.advertise<sensor_msgs::JointState>(jaw_publish_topic, 10);
+    jaw_pub = n.advertise<sensor_msgs::JointState>(jaw_publish_topic, 10);
 
     ros::Subscriber state_sub = n.subscribe(state_subscribe_topic, 10, stateCallback);
     ros::Subscriber cart_sub;
@@ -156,22 +158,28 @@ int main(int argc, char **argv)
     } else {
 	std::cerr << "Arg 7 can only be Pose or PoseStamped!!!" << std::endl;
     }
-    ros::Subscriber jaw_sub   = n.subscribe(jaw_subscribe_topic,   10, jawCallback);
+    ros::Subscriber jaw_sub = n.subscribe(jaw_subscribe_topic,   10, jawCallback);
 
-    ros::spin();
+    // ros::spin();
 
     // My new code goes here?
-    cur_time = get_current_time();
-    while(cur_time - cart_buffer.front()->time >= delay){ // Does cartesian topic msg have timestamp?
-        cartesian_pub.publish(cart_buffer.front());
-        jaw_pub.publish(jaw_buffer.front());
-        cartesian_pub.pop();
-        jaw_pub.pop();
-        // state_buffer.pop();
-        cur_time = get_current_time();
+    ros::Rate loop_rate(10); // 10 Hz loop rate
+    ros::Duration delay(1.0); // hardcode delay for now
+
+    while (ros::ok()) {
+        ros::spinOnce();
+        ros::Time current_time = ros::Time::now();
+
+        while (!cart_buffer.empyt() && (current_time - cart_buffer.front()->time) >= delay) {
+            cartesian_pub.publish(cart_buffer.front());
+            jaw_pub.publish(jaw_buffer.front());
+            cartesian_pub.pop();
+            jaw_pub.pop();
+        }
+        
+        loop_rate.sleep();
+    
     }
     
-
-
     return 0;
 }
