@@ -8,6 +8,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/JointState.h>
 #include <stdio.h>
+#include <queue>
 
 std::string lastStatePublished;
 geometry_msgs::Pose lastPosePublishedPose;
@@ -16,8 +17,8 @@ sensor_msgs::JointState lastJawRecieved;
 
 // Queues to buffer relayed messages
 std::queue<std_msgs::String::ConstPtr> state_buffer;
-std::queue<geometry_msgs::Pose::ConstPtr> cart_buffer;
-std::queue<sensor_msgs::JointState::ConstPtr> jaw_buffer;
+std::queue<geometry_msgs::PoseStamped::ConstPtr> cart_buffer;
+std::queue<sensor_msgs::JointState> jaw_buffer;
 
 ros::Publisher state_pub;
 ros::Publisher cartesian_pub;
@@ -75,8 +76,8 @@ bool arePosesEqualPoseStamped(geometry_msgs::PoseStamped pose1, geometry_msgs::P
 
 void stateCallback(const std_msgs::String::ConstPtr& msg){
     if(msg->data != lastStatePublished){
-        // state_pub.publish(msg);
-        state_buffer.push(msg);
+        state_pub.publish(msg);
+        // state_buffer.push(msg);
         lastStatePublished = msg->data;
 	std::cout << "New state: " << lastStatePublished << std::endl;
     }
@@ -86,9 +87,18 @@ void cartesianCallbackPose(const geometry_msgs::Pose::ConstPtr& msg){
     if(lastStatePublished == "READY" && !arePosesEqualPose(lastPosePublishedPose, *msg)){
         // cartesian_pub.publish(msg);
         // jaw_pub.publish(lastJawRecieved);
-
-        cart_buffer.push(msg)
-        jaw_buffer.push(lastJawRecieved)
+		
+	geometry_msgs::PoseStamped::ConstPtr new_msg; 
+	new_msg->header.stamp = ros::Time::now();
+	new_msg->pose.position.x = msg->position.x; 
+	new_msg->pose.position.y = msg->position.y;
+	new_msg->pose.position.z = msg->position.z;
+	new_msg->pose.orientation.x = msg->orientation.x; 
+	new_msg->pose.orientation.y = msg->orientation.y;
+	new_msg->pose.orientation.z = msg->orientation.z;
+	new_msg->pose.orientation.w = msg->orientation.w;
+        cart_buffer.push(new_msg);
+        jaw_buffer.push(lastJawRecieved);
 
         lastPosePublishedPose = *msg;
     }
@@ -99,8 +109,8 @@ void cartesianCallbackPoseStamped(const geometry_msgs::PoseStamped::ConstPtr& ms
         // cartesian_pub.publish(msg);
         // jaw_pub.publish(lastJawRecieved);
 
-        cart_buffer.push(msg)
-        jaw_buffer.push(lastJawRecieved)
+        cart_buffer.push(msg);
+        jaw_buffer.push(lastJawRecieved);
 
         lastPosePublishedPoseStamped = *msg;
     }
@@ -163,18 +173,20 @@ int main(int argc, char **argv)
     // ros::spin();
 
     // My new code goes here?
-    ros::Rate loop_rate(10); // 10 Hz loop rate
+    ros::Rate loop_rate(100); // 10 Hz loop rate
     ros::Duration delay(1.0); // hardcode delay for now
 
     while (ros::ok()) {
         ros::spinOnce();
         ros::Time current_time = ros::Time::now();
+	ros::Time front_timestamp(cart_buffer.front()->header.stamp.sec, cart_buffer.front()->header.stamp.nsec);
 
-        while (!cart_buffer.empyt() && (current_time - cart_buffer.front()->time) >= delay) {
+	// front_timestamp = cart_buffer.front()->header.stamp.sec + std::pow(cart_buffer.front()->header.stamp.nsec, -9);
+        while (!cart_buffer.empty() && (current_time - front_timestamp) >= delay) {
             cartesian_pub.publish(cart_buffer.front());
             jaw_pub.publish(jaw_buffer.front());
-            cartesian_pub.pop();
-            jaw_pub.pop();
+            cart_buffer.pop();
+            jaw_buffer.pop();
         }
         
         loop_rate.sleep();
