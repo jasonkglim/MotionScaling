@@ -1,0 +1,52 @@
+<launch>
+
+    <!-- Relays for PSM1 network -->
+    <node name="PSM1_read_desired_robot_state"
+          pkg="topic_tools"
+          type="relay"
+          args="/dvrk/PSM1/desired_state /dvrk/NetPSM1/read_desired_robot_state"/>
+
+    <node name="PSM1_get_current_state"
+          pkg="dvrk_robot"
+          type="state_relay"
+          args="/dvrk/PSM1/current_state /dvrk/NetPSM1/read_current_robot_state
+                /dvrk/PSM1/position_cartesian_current /dvrk/NetPSM1/read_position_cartesian
+                /dvrk/PSM1/state_jaw_current /dvrk/NetPSM1/read_jaw PoseStamped"/>
+
+    <node name="PSM1_set_desired_state"
+          pkg="dvrk_robot"
+          type="state_relay"
+          args="/dvrk/NetPSM1/target_desired_state /dvrk/PSM1/set_desired_state
+                /dvrk/NetPSM1/target_position_cartesian /dvrk/PSM1/set_position_cartesian
+                /dvrk/NetPSM1/target_jaw /dvrk/PSM1/set_position_jaw Pose"/>
+
+    <!-- Relays for PSM2 network -->
+
+    <node name="PSM2_read_desired_robot_state"
+          pkg="topic_tools"
+          type="relay"
+          args="/dvrk/PSM2/desired_state /dvrk/NetPSM2/read_desired_robot_state"/>
+
+    <node name="PSM2_get_current_state"
+          pkg="dvrk_robot"
+          type="state_relay"
+          args="/dvrk/PSM2/current_state /dvrk/NetPSM2/read_current_robot_state
+                /dvrk/PSM2/position_cartesian_current /dvrk/NetPSM2/read_position_cartesian
+                /dvrk/PSM2/state_jaw_current /dvrk/NetPSM2/read_jaw PoseStamped"/>
+
+    <node name="PSM2_set_desired_state"
+          pkg="dvrk_robot"
+          type="state_relay"
+          args="/dvrk/NetPSM2/target_desired_state /dvrk/PSM2/set_desired_state
+                /dvrk/NetPSM2/target_position_cartesian /dvrk/PSM2/set_position_cartesian
+                /dvrk/NetPSM2/target_jaw /dvrk/PSM2/set_position_jaw Pose"/>
+
+
+    <!-- Start the dVRK console -->
+    <node name="dvrk_node"
+        pkg="dvrk_robot"
+        type="dvrk_console_json"
+	    args="-j $(find dvrk_config)/ucsd_lab/console-MTML-PSM1-MTMR-PSM2-Teleop-LND.json"
+        output="screen"/>
+
+</launch>
