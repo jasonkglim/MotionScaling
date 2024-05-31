@@ -123,6 +123,8 @@ int main(int argc, char **argv)
     std::string jaw_subscribe_topic = argv[5];
     std::string jaw_publish_topic   = argv[6];
     float delay  = boost::lexical_cast<float>(argv[7]);
+    // Seems like if useReady is 1, we don't need to check that lastStatePublished is READY to publish pose
+    // If useReady is 0, we should check that lastStatePublished is READY before publishing pose
     int useReady = boost::lexical_cast<int>(argv[8]);
     int usePoseStamped = boost::lexical_cast<int>(argv[9]);
 
@@ -152,9 +154,11 @@ int main(int argc, char **argv)
         ros::spinOnce();
         loop_rate.sleep();
 
+        // check if anything is in pose buffer
         if (!ts_pose_buffer.empty()){
             while ((ros::Time::now() - ts_pose_buffer.front()).toSec() > delay) {
 
+                // set curPose to either front of pose or poseStamped buffer
                 if(usePoseStamped != 0){
                     curPose = pose_buffer_stamped.front().pose;
                 }
@@ -162,8 +166,11 @@ int main(int argc, char **argv)
                     curPose = pose_buffer.front();
                 }
 
+                // If we want to useReady, useReady == 1
                 if(useReady != 0){
+                    // just check that last published pose is different from front of our buffer
                     if(!arePosesEqual(lastPosePublished, curPose)){
+                        // publish either front of pose or posestamped, update lastPosePublished
                         if(usePoseStamped != 0){
                             cartesian_pub.publish(pose_buffer_stamped.front());
                         }
@@ -173,6 +180,7 @@ int main(int argc, char **argv)
                         lastPosePublished = curPose;
                     }
                 }
+                // if useReady is 0, we check also check that lastStatePublished is READY, everything else stays the same
                 else{
                     if (lastStatePublished == "READY" && !arePosesEqual(lastPosePublished, curPose)){
                         if(usePoseStamped != 0){
@@ -185,6 +193,7 @@ int main(int argc, char **argv)
                     }
                 }
 
+                // Pop proper buffer
                 if(usePoseStamped != 0){
                     pose_buffer_stamped.pop_front();
                 }
@@ -194,12 +203,14 @@ int main(int argc, char **argv)
 
                 ts_pose_buffer.pop_front();
 
+                // Continue while loop checking front of buffer unless its empty
                 if(ts_pose_buffer.empty()){
                     break;
                 }
             }
         }
 
+        // Repeat for jaw buffer
         if(!ts_jaw_buffer.empty()) {
             while ((ros::Time::now() - ts_jaw_buffer.front()).toSec() > delay) {
 
