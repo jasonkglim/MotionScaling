@@ -9,7 +9,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     // Create a publisher object
-    ros::Publisher pub = nh.advertise<ros::Duration>("/teleop/set_delay", 1000);
+    ros::Publisher pub = nh.advertise<std_msgs::Float32>("/teleop/set_delay", 1000);
 
     // Loop rate (not necessary for this example as we use blocking I/O)
     ros::Rate rate(10);
@@ -31,7 +31,8 @@ int main(int argc, char** argv)
         }
 
         // Create a Duration message for delay
-        ros::Duration msg(input_value);
+        std_msgs::Float32 msg;
+        msg.data = input_value;
 
         // Publish the message
         pub.publish(msg);
