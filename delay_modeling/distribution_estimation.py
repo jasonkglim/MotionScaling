@@ -41,7 +41,7 @@ def calculate_pmf_cdf(pdf, edges):
 
     return bin_width, pmf, cdf
 
-    
+
     
 class OnlineHistogram:
 
