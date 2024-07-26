@@ -71,7 +71,7 @@ class OnlineHistogram:
         self.pdf, self.edges = np.histogram(self.data, bins=self.bin_mode, density=True)
         return self.pdf, self.edges
 
-    def plot_pmf_cdf(self):
+    def plot_pmf_cdf(self, savepath):
 
         bin_width = np.diff(self.edges)
         cdf = np.cumsum(self.pdf)*bin_width
@@ -92,7 +92,7 @@ class OnlineHistogram:
         plt.step(self.edges[:-1], cdf, where='post')
         plt.xlabel('Signal Values')
         plt.ylabel('Cumulative Probability')
-        plt.title(f'Empirical CDF\n90th percentile estimated = {value90}, true = 0.6318')
+        plt.title(f'Empirical CDF\n90th percentile estimated = {value90}')
         
         # Plot the PDF
         plt.subplot(1, 3, 3)
@@ -102,5 +102,6 @@ class OnlineHistogram:
         plt.title('Empirical PDF')
         
         plt.tight_layout()
+        plt.savefig(savepath)
         plt.show()
     
