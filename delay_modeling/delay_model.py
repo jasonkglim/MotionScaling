@@ -149,7 +149,7 @@ ani = animation.FuncAnimation(fig, update_plot, frames=num_frames, interval=50, 
 # writer = PillowWriter(fps=15,
 #                                 metadata=dict(artist='Me'),
 #                                 bitrate=1800)
-ani.save(f'de_animations/binmode_{bin_mode}_window_{window}.gif', writer="pillow", fps=20)
+ani.save(f'binmode_{bin_mode}_window_{window}.gif', writer="pillow", fps=20)
 
 
 # offline_histogram = de.OnlineHistogram(delay_measurements)
