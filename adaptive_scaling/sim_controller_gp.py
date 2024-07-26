@@ -6,12 +6,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
-from utils import stratified_sample, annotate, even_train_split
+from performance_modeling.utils import stratified_sample, annotate, even_train_split
 import glob  # Importing the glob module to find all the files matching a pattern
 import itertools
 from models import BayesRegression, GPRegression
 from scaling_policy import ScalingPolicy, BalancedScalingPolicy
-from utils import annotate_extrema
+from performance_modeling.utils import annotate_extrema
 import os
 import pickle
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, RationalQuadratic

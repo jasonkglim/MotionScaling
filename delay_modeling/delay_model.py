@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 import distribution_estimation as de
 from scipy.stats import norm
+import pandas as pd
 
 
 # generates an example signal of noisy measurements of delay following gaussian distribution
@@ -54,12 +55,14 @@ sampling_frequency = 50  # Hz
 mean_delay = 0.5  # seconds
 std_dev_delay = 0.1  # seconds
 
-#time, delay_measurements = generate_gauss_signal(duration, sampling_frequency, mean_delay, std_dev_delay)
+# time, delay_measurements = generate_gauss_signal(duration, sampling_frequency, mean_delay, std_dev_delay)
 mean1 = 0.5
 std1 = 0.1
 mean2 = 0.7
 std2 = 0.05
 delay_measurements = bimodal_gauss_signal(mean1, std1, mean2, std2)
+df = pd.read_csv(f"delay_modeling/network_test_data/JaeyOCU/trial1.csv")
+real_data = df["tcp_rtt (ms)"]
 bin_mode = 'auto'
 window = 10
 online_histogram = de.OnlineHistogram(bin_mode=bin_mode, window=window)
@@ -76,7 +79,7 @@ step_cdf, = axs[1].step([], [], where='post')
 axs[1].set_xlabel('Signal Values')
 axs[1].set_ylabel('Cumulative Probability')
 axs[1].set_title('Empirical CDF')
-# axs[1].axhline(0.9)
+axs[1].axhline(0.9)
 ref_percentile_line = axs[1].axvline(norm.ppf(0.9, loc=mean1, scale=std1))
 axs[1].set_xlim(0, 1.0)
 axs[1].set_ylim(0, 1.0)
@@ -104,6 +107,7 @@ plt.tight_layout()
 def update_plot(frame):
 
     # update histogram and calculate empirical distributions
+    # new_data_point = real_data[frame]
     new_data_point = delay_measurements[frame]
     pdf, edges = online_histogram.update(new_data_point)
     bin_width = np.diff(edges)
@@ -111,6 +115,7 @@ def update_plot(frame):
     pmf = pdf*bin_width
 
     # Update the line plot for the signal
+    # line_signal.set_data(range(frame + 1), real_data[:frame + 1])
     line_signal.set_data(range(frame + 1), delay_measurements[:frame + 1])
 
     # Update the step plot for the empirical CDF
