@@ -45,10 +45,14 @@ def calculate_pmf_cdf(pdf, edges):
     
 class OnlineHistogram:
 
-    def __init__(self, data=[], bin_mode='auto', window=None):
-        self.data = data
+    def __init__(self, data=None, bin_mode='auto', window=None):
+        if data is None:
+            self.data = []
+        else:
+            self.data = data
+            
         self.bin_mode = bin_mode
-        if len(data) == 0:
+        if data is None:
             self.pdf = None
             self.edges = None
         else:
