@@ -8,14 +8,16 @@ import matplotlib.pyplot as plt
 
 # Object for model results, stores models of different metrics
 class PerformanceModel:
-	def __init__(self, train_inputs=[], train_output_dict=[]):
+	def __init__(self, train_inputs=None, train_output_dict=None): 
 		# TO DO: catch exceptions of bad args (given only inputs, etc.)
 		'''
 		Base Class for modeling performance metrics
 		args:
-			- train_input: base class assumes row vector format
+			- train_input: base class assumes row vector format, N x d
 			- train_output_dict: dictionary of output values for each metric
 		'''
+		if train_inputs is None:
+			train_inputs = np.array([])
 		if len(train_inputs) == 0: # If not initialized with any training data..
 			self.X = []
 			self.y_dict = {}
@@ -30,6 +32,7 @@ class PerformanceModel:
 			self.y_dict = {}
 			for metric, data in train_output_dict.items():
 				data = np.array(data)
+				print(data.shape)
 				if data.shape[0] != self.num_examples:
 					print("Number of input/output examples don't match!!")
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
@@ -167,17 +170,26 @@ class GPRegression(PerformanceModel):
 
 ## Bayesian Linear Regression
 class BayesRegression(PerformanceModel):
-	def __init__(self, train_inputs=[], train_output_dict=[], noise=1):
+	'''
+	
+	'''
+	def __init__(self, train_inputs=None, train_output_dict=None, noise=1):
 		super().__init__(train_inputs, train_output_dict)
 		# Initialize prior mean, default is 0 and identity
 		# if len(prior_mean) == 0:
 		# 	self.set_prior(0, )
 		self.homogenize = False
+		if len(self.X) != 0:
+		
+			# The math formulation I use assumes a d x N input matrix
+			self.X = self.X.T
+			self.input_dim = self.X.shape[0]
 
-		if len(self.X) > 0:
+			# prior mean and covar set to 0 and identity by default
 			self.prior_mean = np.zeros((self.input_dim, 1))
 			self.prior_covar = np.identity(self.input_dim)
 			self.set_prior(self.prior_mean, self.prior_covar)
+
 		self.noise = noise # Defines the variance of gaussian observation noise
 		self.posterior_dict = {}
 		self.prediction_dict = {}
@@ -252,15 +264,14 @@ class BayesRegression(PerformanceModel):
 	# Computes poseterior parameters from training data and prior 
 	def train(self):
 		if self.transform:
-			X = self.X_trans.T
+			X = self.X_trans
 		else:
-			X = self.X.T
+			X = self.X
 		for metric, y in self.y_dict.items():
 			y = np.array(y).reshape((-1, 1))
 			A = (X @ X.T / self.noise**2
 				+ np.linalg.inv(self.prior_covar))
 			posterior_covar = np.linalg.inv(A)
-			# print(self.posterior_covar.shape)
 			# print("X ", self.X.shape)
 			# print("y ", self.y.shape)
 			# print("prior covar ", self.prior_covar.shape)

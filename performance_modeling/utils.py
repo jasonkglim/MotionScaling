@@ -139,14 +139,14 @@ def model_heatmaps(data, dense_df, X_train, user, metric, model_type="", model_p
     # annotate_extrema(residual.values, ax[2], 'min')
 
     plt.tight_layout()
-    folder = f"data_files/{user}/model_heatmaps/{metric}/{model_type}"
-    if not os.path.exists(f"data_files/{user}/model_heatmaps"):
-        os.mkdir(f"data_files/{user}/model_heatmaps")
-    if not os.path.exists(f"data_files/{user}/model_heatmaps/{metric}"):
-        os.mkdir(f"data_files/{user}/model_heatmaps/{metric}")
-    if not os.path.exists(f"data_files/{user}/model_heatmaps/{metric}/{model_type}"):
-        os.mkdir(f"data_files/{user}/model_heatmaps/{metric}/{model_type}")
-    filepath = f"data_files/{user}/model_heatmaps/{metric}/{model_type}/ntrain_{len(X_train)}.png"
+    folder = f"../data_files/{user}/model_heatmaps/{metric}/{model_type}"
+    if not os.path.exists(f"../data_files/{user}/model_heatmaps"):
+        os.mkdir(f"../data_files/{user}/model_heatmaps")
+    if not os.path.exists(f"../data_files/{user}/model_heatmaps/{metric}"):
+        os.mkdir(f"../data_files/{user}/model_heatmaps/{metric}")
+    if not os.path.exists(f"../data_files/{user}/model_heatmaps/{metric}/{model_type}"):
+        os.mkdir(f"../data_files/{user}/model_heatmaps/{metric}/{model_type}")
+    filepath = f"../data_files/{user}/model_heatmaps/{metric}/{model_type}/ntrain_{len(X_train)}.png"
     plt.savefig(filepath, facecolor='w')
     # plt.show()
     plt.close()
