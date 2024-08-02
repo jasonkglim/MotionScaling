@@ -32,7 +32,7 @@ class PerformanceModel:
 			self.y_dict = {}
 			for metric, data in train_output_dict.items():
 				data = np.array(data)
-				print(data.shape)
+				# print(data.shape)
 				if data.shape[0] != self.num_examples:
 					print("Number of input/output examples don't match!!")
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
@@ -171,29 +171,26 @@ class GPRegression(PerformanceModel):
 ## Bayesian Linear Regression
 class BayesRegression(PerformanceModel):
 	'''
-	
+	TODO: fix/test self.transform function
 	'''
-	def __init__(self, train_inputs=None, train_output_dict=None, noise=1):
+	def __init__(self, train_inputs=None, train_output_dict=None, obs_noise_std=1, prior_var=1):
 		super().__init__(train_inputs, train_output_dict)
 		# Initialize prior mean, default is 0 and identity
 		# if len(prior_mean) == 0:
 		# 	self.set_prior(0, )
 		self.homogenize = False
-		if len(self.X) != 0:
-		
-			# The math formulation I use assumes a d x N input matrix
-			self.X = self.X.T
-			self.input_dim = self.X.shape[0]
-
-			# prior mean and covar set to 0 and identity by default
-			self.prior_mean = np.zeros((self.input_dim, 1))
-			self.prior_covar = np.identity(self.input_dim)
-			self.set_prior(self.prior_mean, self.prior_covar)
-
-		self.noise = noise # Defines the variance of gaussian observation noise
+		self.transform = False
+		self.obs_noise_std = obs_noise_std # Defines the variance of gaussian observation noise
+		self.prior_var = prior_var # Defines diagonal elements of prior covariance
+		self.has_informed_prior = False # By default we assume prior is uninformed (zero mean)
 		self.posterior_dict = {}
 		self.prediction_dict = {}
-		self.transform = False
+
+		if len(self.X) != 0:
+			# prior mean and covar set to 0 and diagonal by default
+			self.prior_mean = np.zeros((self.input_dim, 1))
+			self.prior_covar = np.identity(self.input_dim) * self.prior_var
+
 		# self.set_prior(self.prior_mean)
 
 	def set_poly_transform(self, degree):
@@ -219,7 +216,7 @@ class BayesRegression(PerformanceModel):
 
 
 	# Define custom prior for weights
-	def set_prior(self, mean, var):
+	def set_informed_prior(self, mean, var):
 		if isinstance(mean, (int, float)):
 			self.prior_mean = mean * np.ones((self.input_dim, 1))
 		else:
@@ -228,13 +225,17 @@ class BayesRegression(PerformanceModel):
 			self.prior_covar = np.identity(self.input_dim) * var
 		else: 
 			self.prior_covar = var
+		self.has_informed_prior = True
 
 	def add_training_data(self, train_inputs, train_output_dict):
-		# TO DO: catch exceptions for bad args
+		'''
+		Assumes train_inputs given in N x d or d
+		'''
+		# TO DO: Fix this, need to transpose here since I'm not at training anymore
 		if len(self.X) == 0: # if uninitialized
 			self.X = np.array(train_inputs)
 			if len(self.X.shape) <= 1:
-				self.X = self.X.reshape((-1, 1))
+				self.X = self.X.reshape((-1, 1)) # Assums a 1D vector represents a set of N 1D examples
 			self.num_examples = self.X.shape[0]
 			self.input_dim = self.X.shape[1]
 			if self.transform:
@@ -242,12 +243,16 @@ class BayesRegression(PerformanceModel):
 				self.input_dim = self.X_trans.shape[1]
 			# if self.flag_homogenize:
 			# 	self.homogenize()
-			self.prior_mean = np.zeros((self.input_dim, 1))
-			self.prior_covar = np.identity(self.input_dim) * 1e3
-			self.set_prior(self.prior_mean, self.prior_covar)
+
+			# Need to set prior if this is first time data is being added.
+			if not self.has_informed_prior:
+				self.prior_mean = np.zeros((self.input_dim, 1))
+				self.prior_covar = np.identity(self.input_dim) * self.prior_var
+
 			for metric, data in train_output_dict.items():
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
 		else: # Already have some data
+
 			train_inputs = np.array(train_inputs)
 			if len(train_inputs.shape) <= 1:
 				train_inputs = train_inputs.reshape((-1, 1))
@@ -263,13 +268,15 @@ class BayesRegression(PerformanceModel):
 
 	# Computes poseterior parameters from training data and prior 
 	def train(self):
+		# Math needs X to be in d x N format
 		if self.transform:
-			X = self.X_trans
+			X = self.X_trans.T
 		else:
-			X = self.X
+			X = self.X.T
+
 		for metric, y in self.y_dict.items():
 			y = np.array(y).reshape((-1, 1))
-			A = (X @ X.T / self.noise**2
+			A = (X @ X.T / self.obs_noise_std**2
 				+ np.linalg.inv(self.prior_covar))
 			posterior_covar = np.linalg.inv(A)
 			# print("X ", self.X.shape)
@@ -277,7 +284,7 @@ class BayesRegression(PerformanceModel):
 			# print("prior covar ", self.prior_covar.shape)
 			# print("prior mean ", self.prior_mean.shape)
 			posterior_mean = (posterior_covar
-								@ (X @ y / self.noise**2
+								@ (X @ y / self.obs_noise_std**2
 									+ np.linalg.inv(self.prior_covar)
 									@ self.prior_mean))
 			self.posterior_dict[metric] = (posterior_mean, posterior_covar)
