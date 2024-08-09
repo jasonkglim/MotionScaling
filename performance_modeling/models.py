@@ -173,7 +173,7 @@ class BayesRegression(PerformanceModel):
 	'''
 	TODO: fix/test self.transform function
 	'''
-	def __init__(self, train_inputs=None, train_output_dict=None, obs_noise_std=1, prior_var=1):
+	def __init__(self, train_inputs=None, train_output_dict=None, obs_noise_std=1, prior_base_var=1):
 		super().__init__(train_inputs, train_output_dict)
 		# Initialize prior mean, default is 0 and identity
 		# if len(prior_mean) == 0:
@@ -181,7 +181,7 @@ class BayesRegression(PerformanceModel):
 		self.homogenize = False
 		self.transform = False
 		self.obs_noise_std = obs_noise_std # Defines the variance of gaussian observation noise
-		self.prior_var = prior_var # Defines diagonal elements of prior covariance
+		self.prior_base_var = prior_base_var # Defines diagonal elements of prior covariance
 		self.has_informed_prior = False # By default we assume prior is uninformed (zero mean)
 		self.posterior_dict = {}
 		self.prediction_dict = {}
@@ -189,7 +189,7 @@ class BayesRegression(PerformanceModel):
 		if len(self.X) != 0:
 			# prior mean and covar set to 0 and diagonal by default
 			self.prior_mean = np.zeros((self.input_dim, 1))
-			self.prior_covar = np.identity(self.input_dim) * self.prior_var
+			self.prior_covar = np.identity(self.input_dim) * self.prior_base_var * self.obs_noise_std**2
 
 		# self.set_prior(self.prior_mean)
 
@@ -247,7 +247,7 @@ class BayesRegression(PerformanceModel):
 			# Need to set prior if this is first time data is being added.
 			if not self.has_informed_prior:
 				self.prior_mean = np.zeros((self.input_dim, 1))
-				self.prior_covar = np.identity(self.input_dim) * self.prior_var
+				self.prior_covar = np.identity(self.input_dim) * self.prior_base_var
 
 			for metric, data in train_output_dict.items():
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
