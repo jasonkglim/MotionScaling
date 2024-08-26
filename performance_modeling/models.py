@@ -315,3 +315,72 @@ class BayesRegression(PerformanceModel):
 				prediction_df[metric+"_var"] = np.diagonal(pred_covar)
 
 		return self.prediction_dict
+
+
+### Class for Bayesian Regression using Normal-InvGamma prior formulation
+
+class BayesRegressionNIG(PerformanceModel):
+	'''
+		hyperparams: 4 element tuple containing (m, V, d, a) hyperparams for Normal-Inverse Gamma distribution
+			m and V are mean and covariance of weight vector
+			d and a are shape and rate parameters for noise variance 
+	'''
+	def __init__(self, train_inputs=None, train_output_dict=None, hyperparams=None):
+		super().__init__(train_inputs, train_output_dict)
+		if hyperparams==None:
+			self.hyperparams = ()
+			self.inform_prior = False # no hyperparams arg means use reference prior
+			dim = self.X.shape[1]
+			m_0 = np.zeros((dim, 1))
+			V_0 = np.inf
+			d_0 = - dim
+			a_0 = 0
+			self.hyperparams = [m_0, V_0, d_0, a_0]
+		else:
+			self.hyperparams = hyperparams
+			self.inform_prior = True
+		self.posterior_dict = {}
+		self.prediction_dict = {}
+
+	def train(self):
+		# With this formulation calculating posterior done with update rules to hyperparams
+		m = self.hyperparams[0] # d x 1
+		V = self.hyperparams[1] # d x d
+		d = self.hyperparams[2] # float
+		a = self.hyperparams[3] # float
+
+		X = self.X # should be n x d
+		n = X.shape[0]
+		dim = X.shape[1]
+
+		if not self.inform_prior:
+			V_inv = 0 if n >= dim else 0.001*np.eye(dim) # Accounting for X.T @ X singular matrix if n < d
+		else:
+			V_inv = np.linalg.inv(V)
+
+		V_post = np.linalg.inv(V_inv + X.T @ X)
+		d_post = d + n
+
+		for metric, y in self.y_dict.items():
+			# y should be n x 1
+
+			m_post = V_post @ (V_inv @ m + X.T @ y) if self.inform_prior else V_post @ X.T @ y
+			if self.inform_prior:
+				a_post = a + m.T @ V_inv @ m + y.T @ y - m_post.T @ np.linalg.inv(V_post) @ m_post
+			else:
+				a_post = y.T @ y - m_post.T @ (X.T @ X) @ m_post
+
+			self.posterior_dict[metric] = [m_post, V_post, d_post, a_post]
+
+		return self.posterior_dict
+	
+	def predict(self, test_input, prediction_df=None):
+		for metric, params in self.posterior_dict.items():
+			pred_loc = test_input @ params[0]
+			pred_covar = params[3] * (np.eye(test_input.shape[0]) + test_input @ params[1] @ test_input.T)
+			self.prediction_dict[metric] = (params[2], pred_loc, np.diagonal(pred_covar)) # parameters for predictive t distribution
+			if prediction_df is not None:
+				prediction_df[metric] = pred_loc
+				prediction_df[metric+"_var"] = np.diagonal(pred_covar)
+
+		return self.prediction_dict

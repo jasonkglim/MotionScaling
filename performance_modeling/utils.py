@@ -85,7 +85,7 @@ def annotate_extrema(data, ax, extrema_type='max'):
 # Visualize model results by plotting heatmaps for original data and predictions
 def model_heatmaps(data, dense_df, X_train, user, metric, model_type="", model_params=""):
 
-    if metric in ["throughput", "avg_movement_speed", "weighted_performance"]: 
+    if metric in ["throughput", "avg_movement_speed", "weighted_performance", "throughput_standard", "avg_movement_speed_standard", "weighted_performance_standard"]: 
         extrema_type = "max" # optimal scale at maximum
     else:
         extrema_type = "min" # optimal scale at minimum
