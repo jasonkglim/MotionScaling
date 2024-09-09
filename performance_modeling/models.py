@@ -344,7 +344,7 @@ class BayesRegressionNIG(PerformanceModel):
 
 	def train(self):
 		# With this formulation calculating posterior done with update rules to hyperparams
-		m = self.hyperparams[0] # d x 1
+		m = self.hyperparams[0].reshape(-1, 1) # d x 1
 		V = self.hyperparams[1] # d x d
 		d = self.hyperparams[2] # float
 		a = self.hyperparams[3] # float
