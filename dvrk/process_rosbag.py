@@ -76,45 +76,6 @@ def process_rosbag(bag_path, psm_save_filepath=None, video_save_filepath=None):
 			# Store the timestamp and force magnitude
 			all_data[psm_id]["time"].append(timestamp)
 			all_data[psm_id]["force_mag"].append(force_magnitude)
-		
-			# # If topic is stereo, save data to video
-			# elif topic.startswith("/stereo") and video_save_filepath is not None:
-			#     # Check if the image data is non-empty
-			# 	all_data["stereo_image"]["time"].append(timestamp)
-			# 	if msg.data:
-			# 		all_data["stereo_image"]["time_valid"].append(timestamp)
-			# 		np_arr = np.frombuffer(msg.data, np.uint8)
-			# 		cv_image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-
-			# 		# Check if cv_image is valid
-			# 		if cv_image is not None and cv_image.size > 0:
-			# 			# print(f"Frame {frame_count}: Successfully decoded. Shape: {cv_image.shape}")
-			# 			height, width, _ = cv_image.shape
-
-			# 			# Write the frame to the video
-			# 			cv_images.append(cv_image)
-			# 			frame_count += 1
-			# 		else:
-			# 			print(f"Frame {frame_count}: Decoding failed or generated an empty image.")
-			# 	else:
-			# 		# print(f"Frame {frame_count}: Empty image data, skipping frame.")
-			# 		frames_to_skip.append(frame_count)
-			# 		frame_count += 1
-		
-	if video_save_filepath is not None:
-		fourcc = cv2.VideoWriter_fourcc(*'XVID')
-		# print("Duration: ", timestamp)
-		# print("Total frames: ", frame_count)
-		# print("Num of frames skipped: ", len(frames_to_skip))
-		fps_estimated = len(cv_images)/timestamp
-		# print("Approximated fps: ", fps_estimated)
-		out = cv2.VideoWriter(video_save_filepath, fourcc, fps_estimated, (width, height))
-		for image in cv_images:
-			out.write(image)
-		# Release the video writer object
-		if out is not None:
-			out.release()
-		print(f"Video saved to {video_save_filepath}")
 
 	# Convert to pandas dataframe and save psm data
 	for key, data in all_data.items():
