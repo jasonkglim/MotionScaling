@@ -43,13 +43,13 @@ def process_rosbag(bag_path, psm_save_filepath=None, video_save_filepath=None):
 	with rosbag.Bag(bag_path, 'r') as bag:
 		# # Read topic info if necessary
 		topics = bag.get_type_and_topic_info()[1].keys()
-		print(topics)
+		# print(topics)
 		topic_list = [item for item in list(topics) if 'PSM' in item]
-		print(topic_list)
+		# print(topic_list)
 		types = bag.get_type_and_topic_info()[0]
-		# for topic in topics:
-		# 	num_msgs = bag.get_type_and_topic_info()[1][topic][1]
-		# 	print(f"Num messages in {topic}: {num_msgs}")
+		for topic in topic_list:
+			num_msgs = bag.get_type_and_topic_info()[1][topic][1]
+			print(f"Num messages in {topic}: {num_msgs}")
 
 		# Initialize data storage for PSM1 and PSM2
 		all_data = {}
@@ -79,87 +79,35 @@ def process_rosbag(bag_path, psm_save_filepath=None, video_save_filepath=None):
 
 	# Convert to pandas dataframe and save psm data
 	for key, data in all_data.items():
-		if key != "stereo_image":
-			all_data[key] = pd.DataFrame(data)
+		all_data[key] = pd.DataFrame(data)
 	if psm_save_filepath is not None:
 		with open(psm_save_filepath, 'wb') as f:
 			pickle.dump(all_data, f)
-	# print("PSM force data saved to ", save_file_prefix + '.pkl')
+	print("PSM force data saved to ", psm_save_filepath)
 
-	return all_data
-
-# Process user_trial_data 
-def process_user_trial_data(user, test_name):
-	'''
-	Process trial data from video, i.e. time score and number of drops
-	'''
-	# Load data from csv file
-	data = pd.read_csv(f"dvrk/trial_data/user_{user}/{user}_trial_data.csv")
-	
+	return all_data	
 	
 
 # Process a set of bag files for user study.
 if __name__=="__main__":
 
-	scale = [1, 2, 3, 4]
-	delay = [2, 5]
-	test_names = [f"scale{s}_delay{d}" for s in scale for d in delay]
-	# test_names = ["force_test", "force_test2", "force_test3"]
-	user_list = ["neelay", "nikhil"]
-
+	# get all names of folders in base_folder, in format user_<name>
+	base_folder = "C:/Users/jlimk/Documents/dvrk_trial_data"
+	user_list = [f for f in os.listdir(base_folder) if os.path.isdir(os.path.join(base_folder, f))]
+	user_list = ["user_pradhit"]
+	# loop over all users folders
 	for user in user_list:
-		os.makedirs(f"dvrk/trial_data/user_{user}", exist_ok=True)
-		for test in test_names:
-			# if test == "scale_1e-1_delay_2e-1" or test == "scale_5e-1_delay_2e-1":
-			# 	continue
-			bag_path = f"C:/Users/jlimk/Documents/dvrk_trial_data/user_{user}/rosbags/{test}.bag"
-			psm_save_filepath = f"dvrk/trial_data/user_{user}/{test}_psm_data.pkl"
+		print("Processing ", user)
+		bag_folder = f"{base_folder}/{user}/rosbags"
+		# Create local folder to store processed data
+		os.makedirs(f"dvrk/trial_data/{user}", exist_ok=True)
+		# Loop over all files in bag_folder
+
+		for test in os.listdir(bag_folder):
+			test = test.strip(".bag")
+			print("Processing test ", test)
+			bag_path = f"C:/Users/jlimk/Documents/dvrk_trial_data/{user}/rosbags/{test}.bag"
+			psm_save_filepath = f"dvrk/trial_data/{user}/{test}_psm_data.pkl"
 			# video_save_filepath = f""
 			print(user, test)
 			all_data = process_rosbag(bag_path, psm_save_filepath)
-
-		# # plot PSM forces over time
-		# fig, axs = plt.subplots(1, 4, figsize=(16, 6))
-		# force_fft = {}
-		# i = 1
-		# for key, data in all_data.items():
-		# 	if key != "stereo_image":
-		# 		# print(len(data))
-		# 		print(key)
-		# 		axs[0].plot(data["time"], data["force_mag"], label=key)
-		# 		fs = len(data) / data["time"].iloc[-1]
-		# 		lcf = 0.1
-		# 		hcf = 5
-		# 		force_filtered = butter_bandpass(data["force_mag"], lowcut=lcf, highcut=hcf, fs=fs, order=3)
-		# 		force_filtered_positive = np.maximum(force_filtered, 0)
-		# 		filtered_mean = np.mean(force_filtered_positive)
-		# 		axs[3].plot(data["time"], force_filtered, label=key+" Filtered")
-		# 		freq, force_fft[key] = compute_fft(data["force_mag"], fs=fs)
-		# 		window = 1000
-		# 		idx = (int(len(freq)/2) - 1, int(len(freq)/2) + window)
-		# 		axs[i].plot(freq[idx[0]:idx[1]], force_fft[key][idx[0]:idx[1]], label=key)
-		# 		axs[i].legend()
-		# 		i += 1
-		# 		axs[0].set_xlabel('Time (s)')
-		# 		axs[0].set_ylabel('Force (N)')
-		# 		# axs[1].set_xlabel('Time (s)')
-		# 		# axs[1].set_ylabel('Force (N)')
-		# 		print(filtered_mean)
-		# 		# axs[1].axhline(filtered_mean, label=key+" Mean")
-		# 		axs[0].legend()
-		# 		# axs[1].set_xlabel('Frequency (Hz)')
-		# 		# axs[1].set_ylabel('FT')
-		# # print(force_fft.keys())
-		# # fft_diff = force_fft["PSM2"] - force_fft["PSM1"][:-1]
-		# # axs[3].plot(freq[idx[0]:idx[1]], fft_diff[idx[0]:idx[1]], label='FFT Difference')
-		# # axs[3].set_xlabel('Frequency (Hz)')
-		# # axs[3].set_ylabel('FFT')
-		# axs[3].set_title(f"Filtered, lcf = {lcf}, hcf = {hcf}")
-		# # 	# else:
-		# 		# plt.scatter(data["time_valid"], np.zeros(len(data["time_valid"])))
-		# plt.suptitle("Force Magnitude of PSM arms")
-		# plt.legend()
-		# plt.tight_layout()
-		# plt.savefig(f'dvrk/rosbags/processed_data/{test_name}_fft.png')
-		# plt.show()
-

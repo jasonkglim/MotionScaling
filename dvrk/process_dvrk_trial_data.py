@@ -101,7 +101,9 @@ def plot_forces(psm_force_data, fts_data, save_filepath=None):
 
 if __name__ == "__main__":
 	trial_data_base_folder = "C:/Users/jlimk/Documents/dvrk_trial_data"
-	user_list = ["neelay"]
+	force_avgs = {'delay2': [], 'delay5': []}
+	all_user_data = []
+	user_list = ["soofiyan", "nikhil", "neelay", "calvin"]
 	# scale, latency paramter combinations
 	scale = [1, 2, 3, 4]
 	delay = [2, 5]
@@ -127,19 +129,25 @@ if __name__ == "__main__":
 
 			# Extract the proper row from video data and process (time score and drop penalties)
 			cur_video_data = video_data[(video_data['scale'] == s) & (video_data['latency'] == d)]
-			start_time = int(cur_video_data["start_time"]-cur_video_data["rosbag_start_time"])
-			end_time_str = cur_video_data["end_time"].values[0]
+			rosbag_start_time = int(cur_video_data["rosbag_start_time"])
+			end_time_str = str(cur_video_data["end_time"].values[0])
+			start_time_str = str(cur_video_data["start_time"].values[0])
 			if len(end_time_str.split(':')) == 1:
 				end_time = int(end_time_str.split(':')[0])
 			elif len(end_time_str.split(':')) == 2:
 				end_time = int(end_time_str.split(':')[0])*60 + int(end_time_str.split(':')[1])
-			end_time = end_time - int(cur_video_data["rosbag_start_time"])
+			if len(start_time_str.split(':')) == 1:
+				start_time = int(start_time_str.split(':')[0])
+			elif len(start_time_str.split(':')) == 2:
+				start_time = int(start_time_str.split(':')[0])*60 + int(start_time_str.split(':')[1])
+			end_time = end_time - rosbag_start_time
+			start_time = start_time - rosbag_start_time
 			completion_time = end_time - start_time - int(cur_video_data["time_credit"])
 			time_score = completion_time / int(cur_video_data["num_transfers"]) # avg time per transfer
 
 			# Load rosbag and fts data
 			try:
-				psm_force_data = process_rosbag(f"{trial_data_base_folder}/user_{user}/rosbags/{test_name}.bag")
+				# psm_force_data = process_rosbag(f"{trial_data_base_folder}/user_{user}/rosbags/{test_name}.bag")
 				fts_data_filepath = f"{trial_data_base_folder}/user_{user}/fts_files/{test_name}.csv"
 				fts_data = pd.read_csv(fts_data_filepath, skiprows=6)
 			except FileNotFoundError as e:
@@ -165,29 +173,30 @@ if __name__ == "__main__":
 			total_force_adjusted = np.sqrt(fts_data[' Fx ']**2 + fts_data[' Fy ']**2 + fts_data[' Fz ']**2)
 			board_total_force = np.mean(total_force_adjusted) # Average force magnitude after adjusting for drift
 
-			# Calculate avg filtered psm forces
-			filtered_mean = []
-			for psm_id, psm_data in psm_force_data.items():
-				# Clip psm data
-				psm_data_full = psm_data.copy()
-				psm_start_idx = psm_data['time'].sub(start_time).abs().idxmin()
-				psm_end_idx = psm_data['time'].sub(end_time).abs().idxmin()
-				psm_data = psm_data.loc[psm_start_idx:psm_end_idx].copy()  # Make a copy to avoid SettingWithCopyWarning
-				psm_data.loc[:, 'time'] = psm_data['time'] - psm_data['time'].iloc[0]  # Rezero time data
+			# # Calculate avg filtered psm forces
+			# filtered_mean = []
+			# for psm_id, psm_data in psm_force_data.items():
+			# 	# Clip psm data
+			# 	psm_data_full = psm_data.copy()
+			# 	# psm_start_idx = psm_data['time'].sub(start_time).abs().idxmin()
+			# 	# psm_end_idx = psm_data['time'].sub(end_time).abs().idxmin()
+			# 	# psm_data = psm_data.loc[psm_start_idx:psm_end_idx].copy()  # Make a copy to avoid SettingWithCopyWarning
+			# 	psm_data.loc[:, 'time'] = psm_data['time'] - psm_data['time'].iloc[0]  # Rezero time data
 			
-				# Filter psm data with bandpass filter
-				order = 3
-				lcf = 0.1
-				hcf = 5
-				fs = len(psm_data_full) / psm_data_full["time"].iloc[-1]
-				force_filtered = butter_bandpass(psm_data["force_mag"], lowcut=lcf, highcut=hcf, fs=fs, order=order)
-				psm_data.loc[:, "force_filtered"] = force_filtered  # Add filtered force to dict for plotting later
-				force_filtered_positive = np.maximum(force_filtered, 0)
-				psm_data.loc[:, "force_filtered_positive"] = force_filtered_positive
-				filtered_mean.append(np.mean(force_filtered_positive))
-				# print(psm_id, " force_filtered_positive mean = ", np.mean(force_filtered_positive))
-				# psm_total_force += filtered_mean # sum of average filtered psm forces
-			psm_total_force = np.mean(filtered_mean)
+			# 	# Filter psm data with bandpass filter
+			# 	order = 3
+			# 	lcf = 0.1
+			# 	hcf = 5
+			# 	fs = len(psm_data_full) / psm_data_full["time"].iloc[-1]
+			# 	force_filtered = butter_bandpass(psm_data["force_mag"], lowcut=lcf, highcut=hcf, fs=fs, order=order)
+			# 	psm_data.loc[:, "force_filtered"] = force_filtered  # Add filtered force to dict for plotting later
+			# 	force_filtered_positive = np.maximum(force_filtered, 0)
+			# 	psm_data.loc[:, "force_filtered_positive"] = force_filtered_positive
+			# 	filtered_mean.append(np.mean(force_filtered_positive))
+			# 	# print(psm_id, " force_filtered_positive mean = ", np.mean(force_filtered_positive))
+			# 	# psm_total_force += filtered_mean # sum of average filtered psm forces
+			# psm_total_force = np.mean(filtered_mean)
+			psm_total_force = 0
 
 			# Print metrics
 			print("Time score = ", time_score)
@@ -197,60 +206,105 @@ if __name__ == "__main__":
 			print("Overall score = ???")
 
 			# Plot full peg board and psm forces to ensure clip is correct
-			fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-			fig.suptitle("Full Force Data")
+			# fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+			# fig.suptitle("Full Force Data")
 
-			axs[0].set_title("Peg Board Force")
-			axs[0].plot(fts_data_full[' Time '], fts_data_full[' Fx '], label="Fx")
-			axs[0].plot(fts_data_full[' Time '], fts_data_full[' Fy '], label="Fy")
-			axs[0].plot(fts_data_full[' Time '], fts_data_full[' Fz '], label="Fz")
-			axs[0].axvline(start_time, color='r', linestyle='--', label='Start Time')
-			axs[0].axvline(end_time, color='g', linestyle='--', label='End Time')
-			axs[0].legend()
+			# axs[0].set_title("Peg Board Force")
+			# axs[0].plot(fts_data_full[' Time '], fts_data_full[' Fx '], label="Fx")
+			# axs[0].plot(fts_data_full[' Time '], fts_data_full[' Fy '], label="Fy")
+			# axs[0].plot(fts_data_full[' Time '], fts_data_full[' Fz '], label="Fz")
+			# axs[0].axvline(start_time, color='r', linestyle='--', label='Start Time')
+			# axs[0].axvline(end_time, color='g', linestyle='--', label='End Time')
+			# axs[0].legend()
 
-			axs[1].set_title("PSM Arm Forces")
-			for psm_id, psm_data in psm_force_data.items():
-				axs[1].plot(psm_data["time"], psm_data["force_mag"], label=psm_id)
-			axs[1].axvline(start_time, color='r', linestyle='--', label='Start Time')
-			axs[1].axvline(end_time, color='g', linestyle='--', label='End Time')
-			axs[1].legend()
-			plt.show()
+			# axs[1].set_title("PSM Arm Forces")
+			# for psm_id, psm_data in psm_force_data.items():
+			# 	axs[1].plot(psm_data["time"], psm_data["force_mag"], label=psm_id)
+			# axs[1].axvline(start_time, color='r', linestyle='--', label='Start Time')
+			# axs[1].axvline(end_time, color='g', linestyle='--', label='End Time')
+			# axs[1].legend()
+			# plt.show()
 
 			# Plot Peg Board and PSM force magnitude over time
-			plot_forces(psm_force_data, fts_data)
+			# plot_forces(psm_force_data, fts_data)
 
 			# Append metrics to data
 			metric_data.loc[len(metric_data)] = [s, d, board_total_force, psm_total_force, time_score, int(cur_video_data["num_drops"]), 0]
+			# metric_data.loc[len(metric_data)] = [s, d, board_total_force, psm_total_force, time_score, 0, 0]
+
+			all_user_data.append(metric_data)
 			
 		# Save metric data?
 		# metric_data.to_csv(metric_data_save_filepath + '.csv')
 
-		# Plot metric heatmaps
-		fig, ax = plt.subplots(2, 2, figsize=(18, 6))
-		# plt.figure()
-		title = (f"{user} force metrics")
-		fig.suptitle(title)
-		board_force_heatmap = metric_data.pivot(
-			index='latency', columns='scale', values='board_force'
-		)
-		sns.heatmap(board_force_heatmap, cmap='YlGnBu', ax=ax[0], annot=True, fmt='.3f')
-		ax[0].set_title('Peg Board Force')
-		ax[0].set_xlabel('Scale')
-		ax[0].set_ylabel('Latency')
-		# annotate_extrema(board_force_heatmap.values, ax[0], extrema_type='max')
+		# # Plot metric heatmaps
+		# fig, ax = plt.subplots(2, 2, figsize=(18, 6))
+		# # plt.figure()
+		# title = (f"{user} force metrics")
+		# fig.suptitle(title)
+		# board_force_heatmap = metric_data.pivot(
+		# 	index='latency', columns='scale', values='board_force'
+		# )
+		# sns.heatmap(board_force_heatmap, cmap='YlGnBu', ax=ax[0], annot=True, fmt='.3f')
+		# ax[0].set_title('Peg Board Force')
+		# ax[0].set_xlabel('Scale')
+		# ax[0].set_ylabel('Latency')
+		# # annotate_extrema(board_force_heatmap.values, ax[0], extrema_type='max')
 
-		psm_force_heatmap = metric_data.pivot(
-			index='latency', columns='scale', values='psm_force'
-		)
-		sns.heatmap(psm_force_heatmap, cmap='YlGnBu', ax=ax[1], annot=True, fmt='.3f')
-		ax[1].set_title('PSM Force')
-		ax[1].set_xlabel('Scale')
-		ax[1].set_ylabel('Latency')
-		# annotate_extrema(psm_force_heatmap.values, ax[1], extrema_type='max')
+		# psm_force_heatmap = metric_data.pivot(
+		# 	index='latency', columns='scale', values='psm_force'
+		# )
+		# sns.heatmap(psm_force_heatmap, cmap='YlGnBu', ax=ax[1], annot=True, fmt='.3f')
+		# ax[1].set_title('PSM Force')
+		# ax[1].set_xlabel('Scale')
+		# ax[1].set_ylabel('Latency')
+		# # annotate_extrema(psm_force_heatmap.values, ax[1], extrema_type='max')
 
-		plt.tight_layout()
-		folder = "../figures/dvrk"
-		os.makedirs(folder, exist_ok=True)
-		filepath = f"{folder}/{user}_force"
-		plt.savefig(filepath, facecolor='w')
-		plt.show()
+		# plt.tight_layout()
+		# folder = "../figures/dvrk"
+		# os.makedirs(folder, exist_ok=True)
+		# filepath = f"{folder}/{user}_force"
+		# plt.savefig(filepath, facecolor='w')
+		# plt.show()
+
+		# Calculate average board_force and psm_force across scale for latency 2 and 5
+		force_avgs['delay2'].append(metric_data[metric_data['latency'] == 2].mean()['board_force'])
+		force_avgs['delay5'].append(metric_data[metric_data['latency'] == 5].mean()['board_force'])
+
+		
+
+	# Plot average board force across scale for each user
+	plt.figure(figsize=(10, 6))
+	for data in all_user_data:
+		scales = data['scale'].unique()
+		forces = data[data['latency'] == 5]['board_force']
+		plt.plot(scales, forces, marker='o')
+
+	plt.legend([f"User {i}" for i in range(len(user_list))])
+	plt.xlabel('Scale')
+	plt.ylabel('Average Force')
+	plt.title('Safety vs. Scale (Latency = .5 s)')
+	plt.grid(True)
+	plt.show()
+	# plt.figure()
+	# for data in all_user_data:
+	# 	scales = data['scale'].unique()
+	# 	forces = data[data['latency'] == 5]['board_force']
+	# 	plt.plot(scales, forces)
+
+	# plt.legend([f"User {i}" for i in range(len(user_list))])
+	# plt.show()
+
+	# Plot time score vs. scale for each user
+	plt.figure(figsize=(10, 6))
+	for data in all_user_data:
+		scales = data['scale'].unique()
+		time_scores = data[data['latency'] == 5]['time_score']
+		plt.plot(scales, time_scores, marker='o')
+	plt.legend([f"User {i}" for i in range(len(user_list))])
+	plt.xlabel('Scale')
+	plt.ylabel('Time Score')
+	plt.title('Time Score vs. Scale (Latency = .5 s)')
+	plt.grid(True)
+	plt.show()
+	
