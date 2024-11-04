@@ -38,10 +38,6 @@ class PerformanceModel:
 				self.y_dict[metric] = np.array(data).reshape((-1, 1))
 				
 				
-		
-
-	def train(self):
-		pass
 
 	
 		
