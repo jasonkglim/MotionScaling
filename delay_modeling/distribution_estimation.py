@@ -74,6 +74,18 @@ class OnlineHistogram:
         
         self.pdf, self.edges = np.histogram(self.data, bins=self.bin_mode, density=True)
         return self.pdf, self.edges
+    
+    def get_value_at_percentile(self, percentile):
+        '''Return the value at a given percentile in the current estimated distribution.
+        
+        Parameters:
+        - percentile (int): Percentile value (between 0 and 100).
+
+        Returns:
+        - float: Value at the specified percentile.
+        '''
+        cdf = np.cumsum(self.pdf)*np.diff(self.edges)
+        return value_at_percentile(cdf, self.edges, percentile)
 
     def plot_pmf_cdf(self, savepath):
 
