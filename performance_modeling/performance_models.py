@@ -1,24 +1,24 @@
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel, RationalQuadratic
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class PerformanceModel:
-    def __init__(self, train_inputs=None, train_output_dict=None, 
-                 set_poly_transform=None):
-        '''
+    def __init__(
+        self,
+        train_inputs=None,
+        train_output_dict=None,
+        set_poly_transform=None,
+    ):
+        """
         Base class for modeling performance metrics.
 
         Args:
             train_inputs (array-like, optional): Input data of shape (N, d).
-            train_output_dict (dict, optional): Dictionary with output values 
+            train_output_dict (dict, optional): Dictionary with output values
                 for each metric.
-            set_poly_transform (int, optional): Degree of polynomial 
+            set_poly_transform (int, optional): Degree of polynomial
                 transformation to apply to input data.
-        '''
+        """
         self.set_poly_transform = set_poly_transform
         self.X = self._initialize_inputs(train_inputs)
         self.num_examples = self.X.shape[0] if self.X.size else 0
@@ -26,20 +26,20 @@ class PerformanceModel:
         self.y_dict = self._initialize_outputs(train_output_dict)
 
     def _initialize_inputs(self, input):
-        '''Initialize and validate input data.'''
+        """Initialize and validate input data."""
         if input is None or len(input) == 0:
             return np.array([])
         input = np.array(input)
         if input.ndim == 1:
-            input = input.reshape(-1, 1)  # Assumes a 1D array is a set of 
-                                         # single dimension inputs
+            input = input.reshape(-1, 1)  # Assumes a 1D array is a set of
+            # single dimension inputs
         if self.set_poly_transform is not None:
             poly = PolynomialFeatures(degree=self.set_poly_transform)
             input = poly.fit_transform(input)
         return input
 
     def _initialize_outputs(self, train_output_dict):
-        '''Initialize and validate output dictionary.'''
+        """Initialize and validate output dictionary."""
         y_dict = {}
         if train_output_dict is None:
             return y_dict
@@ -54,13 +54,13 @@ class PerformanceModel:
         return y_dict
 
     def add_metric(self, metric_name, output_data):
-        '''
+        """
         Add a new metric and its corresponding output data.
 
         Args:
             metric_name (str): Name of the metric.
             output_data (array-like): Output data to add.
-        '''
+        """
         output_data = np.array(output_data)
         if output_data.shape[0] != self.num_examples:
             raise ValueError(
@@ -85,7 +85,7 @@ class BayesRegressionPerformanceModel(PerformanceModel):
         train_inputs=None,
         train_output_dict=None,
         hyperparams=None,
-        set_poly_transform=None
+        set_poly_transform=None,
     ):
         super().__init__(train_inputs, train_output_dict, set_poly_transform)
 
@@ -146,10 +146,10 @@ class BayesRegressionPerformanceModel(PerformanceModel):
         )
         if self.inform_prior:
             a_post = (
-                a +
-                m.T @ v_inv @ m +
-                y.T @ y -
-                m_post.T @ np.linalg.inv(v_post) @ m_post
+                a
+                + m.T @ v_inv @ m
+                + y.T @ y
+                - m_post.T @ np.linalg.inv(v_post) @ m_post
             )
         else:
             a_post = y.T @ y - m_post.T @ (x.T @ x) @ m_post
@@ -161,7 +161,8 @@ class BayesRegressionPerformanceModel(PerformanceModel):
 
         Args:
             test_input (ndarray): New input data.
-            prediction_df (pd.DataFrame, optional): DataFrame to store predictions.
+            prediction_df (pd.DataFrame, optional): DataFrame to store
+                predictions.
 
         Returns:
             dict: Prediction parameters for each metric.
@@ -181,8 +182,7 @@ class BayesRegressionPerformanceModel(PerformanceModel):
         """Compute prediction mean and variance for a single metric."""
         pred_loc = test_input @ params[0]
         pred_covar = params[3] * (
-            np.eye(test_input.shape[0]) +
-            test_input @ params[1] @ test_input.T
+            np.eye(test_input.shape[0]) + test_input @ params[1] @ test_input.T
         )
         return pred_loc, np.diagonal(pred_covar)
 
@@ -192,6 +192,30 @@ class BayesRegressionPerformanceModel(PerformanceModel):
             hyperparams[0].reshape(-1, 1),
             hyperparams[1],
             hyperparams[2],
-            hyperparams[3]
+            hyperparams[3],
         )
 
+    def get_optimal_scale(self, delay, scale_domain, metric):
+        """Get the optimal scale for a given delay.
+
+        Args:
+            delay (float): Desired effective delay.
+            scale_domain (array-like): Domain of scale values to consider.
+
+        Returns:
+            float: Optimal scale.
+        """
+        # Generate input from delay and scale_domain
+        input_data = self._initialize_inputs(
+            np.array([[delay, scale] for scale in scale_domain])
+        )
+
+        # Perform inference on the input data
+        self.predict(input_data)
+
+        # Find the optimal scale that maximizes the predicted performance
+        optimal_scale = scale_domain[
+            np.argmax(self.prediction_dict[metric][1])
+        ]
+
+        return optimal_scale
