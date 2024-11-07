@@ -1,5 +1,6 @@
 from sklearn.preprocessing import PolynomialFeatures
 import numpy as np
+import sys
 
 
 class PerformanceModel:
@@ -122,12 +123,8 @@ class BayesRegressionPerformanceModel(PerformanceModel):
         x = self.X
         n, dim = x.shape
 
-        v_inv = np.linalg.inv(v) if self.inform_prior else np.zeros((dim, dim))
-        if not self.inform_prior and n < dim:
-            # Handle singularity if n < d
-            v_inv += 0.001 * np.eye(dim)
-
-        v_post = np.linalg.inv(v_inv + x.T @ x)
+        v_inv = safe_inverse(v) if self.inform_prior else np.zeros((dim, dim))
+        v_post = safe_inverse(v_inv + x.T @ x)
         d_post = d + n
 
         for metric, y in self.y_dict.items():
@@ -149,7 +146,7 @@ class BayesRegressionPerformanceModel(PerformanceModel):
                 a
                 + m.T @ v_inv @ m
                 + y.T @ y
-                - m_post.T @ np.linalg.inv(v_post) @ m_post
+                - m_post.T @ (v_inv + x.T @ x) @ m_post
             )
         else:
             a_post = y.T @ y - m_post.T @ (x.T @ x) @ m_post
@@ -219,3 +216,14 @@ class BayesRegressionPerformanceModel(PerformanceModel):
         ]
 
         return optimal_scale
+
+
+# Safe inverse function
+def safe_inverse(a):
+    """
+    Uses pinv if matrix is singular or near singular
+    """
+    if np.linalg.cond(a) > 1 / sys.float_info.epsilon:
+        return np.linalg.pinv(a)
+    else:
+        return np.linalg.inv(a)
