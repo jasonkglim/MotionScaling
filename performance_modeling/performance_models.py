@@ -202,11 +202,12 @@ class BayesRegressionPerformanceModel(PerformanceModel):
         Returns:
             float: Optimal scale.
         """
-        # Generate input from delay and scale_domain
-        input_data = self._initialize_inputs(
-            np.array([[delay, scale] for scale in scale_domain])
-        )
+        # # Generate input from delay and scale_domain
+        # input_data = self._initialize_inputs(
+        #     np.array([[delay, scale] for scale in scale_domain])
+        # )
 
+        input_data = np.array([[delay, scale] for scale in scale_domain])
         # Perform inference on the input data
         self.predict(input_data)
 
