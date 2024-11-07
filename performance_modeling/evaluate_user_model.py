@@ -12,8 +12,8 @@ if __name__ == "__main__":
 
     # Load the performance metric data for the user
     user_name = "user_xiao"
-    data_folder = "../dvrk/trial_data"
-    user_data_file = f"{data_folder}/{user_name}_metric_data.csv"
+    data_folder = "dvrk/trial_data"
+    user_data_file = f"{data_folder}/{user_name}/metric_data.csv"
     data = pd.read_csv(user_data_file)
     # Print column headers that are not "latency" or "scale"
     metric_list = [
@@ -29,11 +29,11 @@ if __name__ == "__main__":
     model.train()
 
     # Choose domain for scaling factors
-    scale_domain = np.arange(0.1, 1.6, 0.1)
+    scale_domain = [1, 2, 3, 4]
 
     # Get the optimal scaling factor in regards to completion time
     # for some levels of delay
-    for delay in [0.1, 0.5, 1.0, 2.0]:
+    for delay in [2, 5]:
         optimal_scale = model.get_optimal_scale(
             delay, scale_domain=scale_domain, metric="time_score"
         )

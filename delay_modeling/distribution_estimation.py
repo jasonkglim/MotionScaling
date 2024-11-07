@@ -52,10 +52,19 @@ class DistributionEstimation:
     the distribution as an empirical histogram.
     """
 
-    def __init__(self, data=None, bin_mode="auto", window=None):
+    def __init__(self, data=None, bin_mode="auto", window=100):
+        """
+        Initialize the distribution estimation object.
+
+        Parameters:
+        - data (list): Initial data points.
+        - bin_mode (str or int): Mode for binning the histogram.
+            If int, represents the number of bins.
+        - window (int): Maximum number of data points to store.
+        """
         self.data = [] if data is None else data
         self.bin_mode = bin_mode
-        self.max_size = np.inf if window is None else window
+        self.max_size = window
         self.pdf, self.edges = (
             self._calculate_pdf_edges() if data else (None, None)
         )
@@ -70,6 +79,7 @@ class DistributionEstimation:
             self.data.pop(0)
         self.data.append(new_data_point)
         self.pdf, self.edges = self._calculate_pdf_edges()
+        return self.pdf, self.edges
 
     def get_value_at_percentile(self, percentile):
         """

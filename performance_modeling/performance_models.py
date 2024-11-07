@@ -212,7 +212,7 @@ class BayesRegressionPerformanceModel(PerformanceModel):
 
         # Find the optimal scale that maximizes the predicted performance
         optimal_scale = scale_domain[
-            np.argmax(self.prediction_dict[metric][1])
+            np.argmin(self.prediction_dict[metric][1])
         ]
 
         return optimal_scale

@@ -28,10 +28,12 @@ user_performance_model = BayesRegressionPerformanceModel(
 user_performance_model.train()
 
 # For estimating the delay distribution
-delay_estimator = DistributionEstimation()
+# We recommend using a window of at least 100 seconds
+# Note that the value of this parameter should be adjusted
+# based on the period between data points (100 for data collected at 1Hz)
+delay_estimator = DistributionEstimation(bin_mode="auto", window=100)
 
-
-# Initialize adaptive motion scaling
+# Psuedo code for adaptive motion scaling algorithm
 buffer = deque()
 while running:
 
@@ -42,6 +44,8 @@ while running:
 
     # Update current estimation of delay, get desired effective delay
     delay_estimator.update(current_delay)
+    # The percentile parameter can be adjusted,
+    # we have found 90 works well on the datasets collected so far
     desired_effective_delay = delay_estimator.get_value_at_percentile(90)
 
     # Get optimal scale from user model
