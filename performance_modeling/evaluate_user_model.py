@@ -25,7 +25,7 @@ if __name__ == "__main__":
     X = data[["latency", "scale"]]
     Y = data[metric_list]
     Y_dict = data[metric_list].to_dict("list")
-    model = BayesRegressionPerformanceModel(X, Y_dict)
+    model = BayesRegressionPerformanceModel(X, Y_dict, set_poly_transform=2)
     model.train()
 
     # Choose domain for scaling factors
