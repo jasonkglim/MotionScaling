@@ -11,7 +11,7 @@ class PerformanceModel:
         set_poly_transform=None,
     ):
         """
-        Base class for modeling performance metrics.
+        Base class for modeling a set of performance metrics.
 
         Args:
             train_inputs (array-like, optional): Input data of shape (N, d).
@@ -72,7 +72,11 @@ class PerformanceModel:
 
 
 class BayesRegressionPerformanceModel(PerformanceModel):
-    """Bayesian Regression with a Normal-Inverse Gamma prior.
+    """
+    Bayesian Regression with Normal-Inverse Gamma prior.
+    Defines a Normal-Inverse Gamma prior over weights and noise variance.
+    Posterior distribution is also Normal-Inverse Gamma with updated params.
+    Predictive distribution is a Student's t distribution.
 
     Args:
         hyperparams (tuple, optional): Contains (m, V, d, a) for Normal-Inverse
@@ -153,25 +157,19 @@ class BayesRegressionPerformanceModel(PerformanceModel):
 
         return [m_post, v_post, d_post, a_post]
 
-    def predict(self, test_input, prediction_df=None):
-        """Predict output and variance for each metric given new input.
+    def predict(self, test_input):
+        """Computes predictive distribution for each metric given new input.
 
         Args:
-            test_input (ndarray): New input data.
-            prediction_df (pd.DataFrame, optional): DataFrame to store
-                predictions.
+            test_input (ndarray): New input data. (N, dim)
 
         Returns:
-            dict: Prediction parameters for each metric.
+            dict: t-distribution params (dof, location, scale) for each metric
         """
         test_input = self._initialize_inputs(test_input)
         for metric, params in self.posterior_dict.items():
             pred_loc, pred_var = self._compute_prediction(test_input, params)
             self.prediction_dict[metric] = (params[2], pred_loc, pred_var)
-
-            if prediction_df is not None:
-                prediction_df[metric] = pred_loc
-                prediction_df[metric + "_var"] = pred_var
 
         return self.prediction_dict
 

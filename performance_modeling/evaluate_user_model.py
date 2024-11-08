@@ -8,25 +8,25 @@ from performance_models import (
     BayesRegressionPerformanceModel,
 )
 
-if __name__ == "__main__":
 
-    # Load the performance metric data for the user
-    user_name = "user_xiao"
-    data_folder = "dvrk/trial_data"
-    user_data_file = f"{data_folder}/{user_name}/metric_data.csv"
-    data = pd.read_csv(user_data_file)
-    # Print column headers that are not "latency" or "scale"
+# Generates and trains a user performance model
+def generate_user_model(data_filepath):
+    data = pd.read_csv(data_filepath, index_col=0)
     metric_list = [
         col for col in data.columns if col not in ["latency", "scale"]
     ]
-    print(f"Metrics available: {metric_list}")
-
-    # Prepare data
     X = data[["latency", "scale"]]
-    Y = data[metric_list]
     Y_dict = data[metric_list].to_dict("list")
     model = BayesRegressionPerformanceModel(X, Y_dict, set_poly_transform=2)
     model.train()
+    return model
+
+
+if __name__ == "__main__":
+
+    # Load the performance metric data for the user
+    user_data_file = "example_user_data.csv"
+    model = generate_user_model(user_data_file)
 
     # Choose domain for scaling factors
     scale_domain = [1, 2, 3, 4]
